@@ -1,0 +1,391 @@
+{
+  "phase": 6,
+  "holdout_seeds": [
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129
+  ],
+  "calibration_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "datasets": [
+    "email-eu-core",
+    "soc-epinions1",
+    "sx-askubuntu",
+    "web-google",
+    "wiki-vote"
+  ],
+  "provenance": [
+    {
+      "id": "email-eu-core",
+      "name": "email-Eu-core",
+      "snap_page": "https://snap.stanford.edu/data/email-Eu-core.html",
+      "download_url": "https://snap.stanford.edu/data/email-Eu-core.txt.gz",
+      "manifest_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+      "observed_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+      "manifest_license_or_terms": "Não foi localizada licença/termos específicos para os dados email-Eu-core nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+      "local_path": "data/phase5_snap/email-eu-core/email-Eu-core.txt.gz",
+      "sample": {
+        "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+        "archive_size_bytes": 79754,
+        "sample_raw_records": 900,
+        "sample_unique_directed_edges": 900,
+        "sample_nodes": 459,
+        "sample_limit": 900,
+        "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+        "temporal_fields_read": false
+      }
+    },
+    {
+      "id": "wiki-vote",
+      "name": "wiki-Vote — Wikipedia vote network",
+      "snap_page": "https://snap.stanford.edu/data/wiki-Vote.html",
+      "download_url": "https://snap.stanford.edu/data/wiki-Vote.txt.gz",
+      "manifest_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+      "observed_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+      "manifest_license_or_terms": "Não foi localizada licença/termos específicos para wiki-Vote nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+      "local_path": "data/phase5_snap/wiki-vote/wiki-Vote.txt.gz",
+      "sample": {
+        "archive_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+        "archive_size_bytes": 290339,
+        "sample_raw_records": 900,
+        "sample_unique_directed_edges": 900,
+        "sample_nodes": 414,
+        "sample_limit": 900,
+        "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+        "temporal_fields_read": false
+      }
+    },
+    {
+      "id": "soc-epinions1",
+      "name": "soc-Epinions1 — Epinions social network",
+      "snap_page": "https://snap.stanford.edu/data/soc-Epinions1.html",
+      "download_url": "https://snap.stanford.edu/data/soc-Epinions1.txt.gz",
+      "manifest_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+      "observed_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+      "manifest_license_or_terms": "Não foi localizada licença/termos específicos para soc-Epinions1. O SNAP BSD aplica-se ao software; não foi atribuída aos dados.",
+      "local_path": "data/phase5_snap/soc-epinions1/soc-Epinions1.txt.gz",
+      "sample": {
+        "archive_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+        "archive_size_bytes": 1630437,
+        "sample_raw_records": 900,
+        "sample_unique_directed_edges": 900,
+        "sample_nodes": 477,
+        "sample_limit": 900,
+        "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+        "temporal_fields_read": false
+      }
+    },
+    {
+      "id": "web-google",
+      "name": "web-Google — Google web graph",
+      "snap_page": "https://snap.stanford.edu/data/web-Google.html",
+      "download_url": "https://snap.stanford.edu/data/web-Google.txt.gz",
+      "manifest_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+      "observed_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+      "manifest_license_or_terms": "Não foi localizada licença/termos específicos para o dataset web-Google. A BSD encontrada licencia o software SNAP, não os dados.",
+      "local_path": "data/phase5_snap/web-google/web-Google.txt.gz",
+      "sample": {
+        "archive_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+        "archive_size_bytes": 21168784,
+        "sample_raw_records": 900,
+        "sample_unique_directed_edges": 900,
+        "sample_nodes": 393,
+        "sample_limit": 900,
+        "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+        "temporal_fields_read": false
+      }
+    },
+    {
+      "id": "sx-askubuntu",
+      "name": "sx-askubuntu — temporal Ask Ubuntu network",
+      "snap_page": "https://snap.stanford.edu/data/sx-askubuntu.html",
+      "download_url": "https://snap.stanford.edu/data/sx-askubuntu.txt.gz",
+      "manifest_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+      "observed_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+      "manifest_license_or_terms": "Não foi localizada licença/termos específicos para sx-askubuntu. A BSD é para o software SNAP e não foi atribuída aos dados.",
+      "local_path": "data/phase5_snap/sx-askubuntu/sx-askubuntu.txt.gz",
+      "sample": {
+        "archive_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+        "archive_size_bytes": 7385842,
+        "sample_raw_records": 900,
+        "sample_unique_directed_edges": 795,
+        "sample_nodes": 300,
+        "sample_limit": 900,
+        "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+        "temporal_fields_read": true
+      }
+    }
+  ],
+  "summary": {
+    "memory": {
+      "rows": 450,
+      "cold_entries": {
+        "median": 0.0,
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "deduplicated_puts": {
+        "median": 0.0,
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "elapsed_ms": {
+        "median": 0.9748615,
+        "mean": 0.9969963711111111,
+        "max": 1.909544
+      },
+      "evictions": {
+        "median": 0.0,
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "hits": {
+        "median": 243.5,
+        "mean": 244.43333333333334,
+        "max": 264.0
+      },
+      "maintenance_ms": {
+        "median": 0.9748615,
+        "mean": 0.9969963711111111,
+        "max": 1.909544
+      },
+      "misses": {
+        "median": 0.0,
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "operations": {
+        "median": 180.0,
+        "mean": 180.0,
+        "max": 180.0
+      },
+      "persist_writes": {
+        "median": 0.0,
+        "mean": 0.0,
+        "max": 0.0
+      },
+      "resident_bytes": {
+        "median": 3570.0,
+        "mean": 3498.76,
+        "max": 4041.0
+      },
+      "seed": {
+        "median": 114.5,
+        "mean": 114.5,
+        "max": 129.0
+      }
+    },
+    "checkpoints": {
+      "rows": 450,
+      "build_ms": {
+        "median": 2.8502355,
+        "mean": 2.4644845111111113,
+        "max": 10.343322
+      },
+      "checkpoint_bytes": {
+        "median": 30720.0,
+        "mean": 20480.0,
+        "max": 30720.0
+      },
+      "checkpoint_count": {
+        "median": 15.0,
+        "mean": 10.0,
+        "max": 15.0
+      },
+      "events": {
+        "median": 500.0,
+        "mean": 500.0,
+        "max": 500.0
+      },
+      "recovery_ms": {
+        "median": 3.5527355000000003,
+        "mean": 4.891974817777778,
+        "max": 15.717716
+      },
+      "recovery_points": {
+        "median": 13.0,
+        "mean": 12.866666666666667,
+        "max": 13.0
+      },
+      "replayed_events": {
+        "median": 229.0,
+        "mean": 1340.8777777777777,
+        "max": 4493.0
+      },
+      "seed": {
+        "median": 114.5,
+        "mean": 114.5,
+        "max": 129.0
+      },
+      "total_ms": {
+        "median": 6.442645499999999,
+        "mean": 7.356459328888889,
+        "max": 21.1222
+      },
+      "exact_structure_rate": 1.0
+    },
+    "components": {
+      "rows": 12000,
+      "full_recompute_ms": {
+        "median": 0.487978,
+        "mean": 0.49612037633333333,
+        "max": 8.649296
+      },
+      "incremental_ms": {
+        "median": 0.0079875,
+        "mean": 0.026775576333333332,
+        "max": 0.155155
+      },
+      "incremental_scanned": {
+        "median": 1240.5,
+        "mean": 1541.045,
+        "max": 5640.0
+      },
+      "merges": {
+        "median": 120.0,
+        "mean": 124.54,
+        "max": 181.0
+      },
+      "seed": {
+        "median": 114.5,
+        "mean": 114.5,
+        "max": 129.0
+      },
+      "splits": {
+        "median": 9.0,
+        "mean": 11.995,
+        "max": 35.0
+      },
+      "step": {
+        "median": 39.5,
+        "mean": 39.5,
+        "max": 79.0
+      },
+      "exact_rate": 1.0
+    },
+    "controller": {
+      "rows": 150,
+      "best_fixed_ms": {
+        "median": 0.40975700000000004,
+        "mean": 0.5769378933333333,
+        "max": 1.527368
+      },
+      "decision_ns": {
+        "median": 8923.0,
+        "mean": 9221.986666666666,
+        "max": 20455.0
+      },
+      "epoch_ms": {
+        "median": 0.435032,
+        "mean": 0.6021958,
+        "max": 1.741138
+      },
+      "seed": {
+        "median": 114.5,
+        "mean": 114.5,
+        "max": 129.0
+      },
+      "selected_ms": {
+        "median": 0.40341899999999997,
+        "mean": 0.5841970866666667,
+        "max": 1.530009
+      },
+      "sets_ms": {
+        "median": 0.4882615,
+        "mean": 0.6451411733333333,
+        "max": 1.608694
+      },
+      "selected_is_best_rate": 0.9333333333333333
+    },
+    "parallel": {
+      "rows": 150,
+      "handles": {
+        "median": 4.0,
+        "mean": 4.0,
+        "max": 4.0
+      },
+      "parallel_build_ms": {
+        "median": 2.4926494999999997,
+        "mean": 4.27449056,
+        "max": 12.419794
+      },
+      "parallel_query_ms": {
+        "median": 1.1791965,
+        "mean": 1.4156442933333333,
+        "max": 7.598855
+      },
+      "parallel_total_ms": {
+        "median": 4.196959,
+        "mean": 5.690134853333333,
+        "max": 14.857371
+      },
+      "seed": {
+        "median": 114.5,
+        "mean": 114.5,
+        "max": 129.0
+      },
+      "sequential_ms": {
+        "median": 2.1277075,
+        "mean": 1.8879855,
+        "max": 2.896396
+      },
+      "speedup_end_to_end": {
+        "median": 0.2968934652858823,
+        "mean": 0.3549296595136267,
+        "max": 0.5608126076725026
+      },
+      "exact_rate": 1.0
+    }
+  },
+  "plots": [
+    "results/phase6/final_holdout_v2/memory_policies.png",
+    "results/phase6/final_holdout_v2/checkpoint_policies.png",
+    "results/phase6/final_holdout_v2/components_incremental.png",
+    "results/phase6/final_holdout_v2/controller_holdout.png",
+    "results/phase6/final_holdout_v2/parallel_sequential.png"
+  ],
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "rustc_expected_to_be_validated_by_tests": true,
+  "limitations": [
+    "SNAP validation uses deterministic bounded prefixes with dense remapping; raw archives and hashes are preserved in provenance.",
+    "The phase 6 adaptive memory stores opaque bytes and measures operational access, not semantic relevance.",
+    "Parallel validation uses isolated Python handles; native Rust parallel execution remains gated by the native test suite."
+  ]
+}
