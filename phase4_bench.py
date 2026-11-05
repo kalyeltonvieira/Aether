@@ -6,12 +6,13 @@ Each strategy runs in a fresh child process; subprocess wall time is separately
 reported. Rust owns the live graph after a single bulk import through ctypes.
 """
 from __future__ import annotations
-import argparse, csv, gc, json, math, os, random, resource, statistics, subprocess, sys, time
+import argparse, csv, gc, json, math, os, random, statistics, subprocess, sys, time
 from array import array
 from pathlib import Path
 
 from aether_dynamic import DynamicGraph, reachable_set, reachable_epoch
 from aether_native import RustDynamicGraph, compile_native
+from aether_metrics import cpu_model, current_rss_bytes, peak_rss_bytes, total_physical_memory_bytes
 
 METHODS = ("python_current", "python_optimized", "rust_ffi", "legacy_controller", "new_policy", "python_csr", "python_rebuild")
 
@@ -127,27 +128,10 @@ def make_events(n, profile, queries, update_pairs, seed, family="sparse_chain"):
     return events
 
 
-def current_rss_bytes():
-    try:
-        with open("/proc/self/status", encoding="ascii") as f:
-            for line in f:
-                if line.startswith("VmRSS:"): return int(line.split()[1]) * 1024
-    except OSError:
-        return 0
-    return 0
-
-
 def hardware_info():
-    model = "unknown"; mem_kib = None
-    try:
-        for line in Path("/proc/cpuinfo").read_text(errors="ignore").splitlines():
-            if line.lower().startswith("model name"):
-                model = line.split(":", 1)[-1].strip(); break
-        for line in Path("/proc/meminfo").read_text().splitlines():
-            if line.startswith("MemTotal:"):
-                mem_kib = int(line.split()[1]); break
-    except OSError:
-        pass
+    model = cpu_model() or "unknown"
+    memory_bytes = total_physical_memory_bytes()
+    mem_kib = memory_bytes / 1024 if memory_bytes is not None else None
     return {"cpu_model": model, "logical_cpu_count": os.cpu_count(), "total_memory_kib": mem_kib,
             "machine": __import__("platform").machine(), "python_platform": sys.platform}
 
@@ -354,7 +338,8 @@ def run_worker(cfg):
     workload_wall_ns = time.perf_counter_ns() - t0
     process_cpu_ns = time.process_time_ns() - cpu0
     rss_after_workload = current_rss_bytes()
-    peak_rss_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak_bytes = peak_rss_bytes()
+    peak_rss_kib = peak_bytes / 1024 if peak_bytes is not None else None
     heap_bytes = graph.memory_bytes()
     if method == "python_rebuild":
         import sys as _sys
@@ -400,8 +385,8 @@ def run_worker(cfg):
         "rss_before_build_bytes": rss_before,
         "rss_after_build_bytes": rss_after_build_with_import_buffer,
         "rss_after_initial_buffer_release_bytes": rss_after_build,
-        "rss_delta_after_build_bytes": rss_after_build_with_import_buffer - rss_before,
-        "rss_delta_after_initial_buffer_release_bytes": rss_after_build - rss_before,
+        "rss_delta_after_build_bytes": rss_after_build_with_import_buffer - rss_before if rss_after_build_with_import_buffer is not None and rss_before is not None else None,
+        "rss_delta_after_initial_buffer_release_bytes": rss_after_build - rss_before if rss_after_build is not None and rss_before is not None else None,
         "rss_after_workload_bytes": rss_after_workload,
         "process_peak_rss_kib": peak_rss_kib,
         "retained_graph_bytes_estimate": heap_bytes,

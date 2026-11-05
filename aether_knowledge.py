@@ -1,33 +1,117 @@
-"""Explicit structured knowledge storage for AETHER phase 7.
+"""Explicit structured knowledge storage for AETHER.
 
-This module intentionally does not infer new facts. It stores explicit entities
-and directed facts with deterministic identifiers, provenance and query indexes.
+This module stores entities and directed facts with deterministic IDs,
+provenance, type-aware scalar identity and query indexes; it does not infer.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Hashable, Mapping
-
+from dataclasses import dataclass
+import struct
+from typing import Mapping
 
 Scalar = str | int | float | bool | None
+ScalarIdentity = tuple[str, object]
+FactIdentity = tuple[str, str, ScalarIdentity]
 
 
-@dataclass(frozen=True)
+def scalar_identity(value: Scalar) -> ScalarIdentity:
+    """Return a stable, type-tagged identity for a supported scalar.
+
+    Python's normal equality treats ``True == 1 == 1.0`` and ``0.0 == -0.0``.
+    Knowledge facts require value-type identity, so floats are encoded by their
+    IEEE-754 bytes and all other supported scalar types use explicit tags.
+    """
+    if value is None:
+        return ("none", None)
+    if isinstance(value, bool):
+        return ("bool", value)
+    if isinstance(value, int):
+        return ("int", value)
+    if isinstance(value, float):
+        return ("float64", struct.pack("!d", value))
+    if isinstance(value, str):
+        return ("str", value)
+    raise TypeError("value must be a supported scalar")
+
+
+def scalar_equal(left: Scalar, right: Scalar) -> bool:
+    return scalar_identity(left) == scalar_identity(right)
+
+
+def fact_key_identity(key: tuple[str, str, Scalar]) -> FactIdentity:
+    return key[0], key[1], scalar_identity(key[2])
+
+
+def _properties_identity(properties: tuple[tuple[str, Scalar], ...]) -> tuple:
+    return tuple((name, scalar_identity(value)) for name, value in properties)
+
+
+@dataclass(frozen=True, eq=False)
 class Provenance:
     source: str
     evidence: str | None = None
     observed_at: int | None = None
+    source_url: str | None = None
+    source_line: int | None = None
+    record_id: str | None = None
+    evidence_type: str | None = None
+    transformation: str | None = None
+    observed_at_iso: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.source, str) or not self.source.strip():
             raise ValueError("provenance source must be a non-empty string")
+        if self.evidence is not None and not isinstance(self.evidence, str):
+            raise TypeError("evidence must be a string or None")
         if self.observed_at is not None and (
             isinstance(self.observed_at, bool) or not isinstance(self.observed_at, int)
         ):
             raise ValueError("observed_at must be an integer or None")
+        for name in ("source_url", "record_id", "evidence_type", "transformation"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, str) or not value.strip()):
+                raise ValueError(f"{name} must be a non-empty string or None")
+        if self.source_line is not None and (
+            isinstance(self.source_line, bool)
+            or not isinstance(self.source_line, int)
+            or self.source_line < 1
+        ):
+            raise ValueError("source_line must be a positive integer or None")
+        if self.observed_at_iso is not None:
+            if not isinstance(self.observed_at_iso, str) or not self.observed_at_iso.strip():
+                raise ValueError("observed_at_iso must be a non-empty ISO date/time or None")
+            from datetime import date, datetime
+
+            try:
+                date.fromisoformat(self.observed_at_iso)
+            except ValueError:
+                try:
+                    datetime.fromisoformat(self.observed_at_iso.replace("Z", "+00:00"))
+                except ValueError as exc:
+                    raise ValueError("observed_at_iso must be an ISO date/time") from exc
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Provenance):
+            return NotImplemented
+        return (
+            self.source, self.evidence, self.observed_at, self.source_url,
+            self.source_line, self.record_id, self.evidence_type,
+            self.transformation, self.observed_at_iso,
+        ) == (
+            other.source, other.evidence, other.observed_at, other.source_url,
+            other.source_line, other.record_id, other.evidence_type,
+            other.transformation, other.observed_at_iso,
+        )
+
+    def __hash__(self) -> int:
+        return hash((
+            self.source, self.evidence, self.observed_at, self.source_url,
+            self.source_line, self.record_id, self.evidence_type,
+            self.transformation, self.observed_at_iso,
+        ))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Entity:
     entity_id: str
     properties: tuple[tuple[str, Scalar], ...] = ()
@@ -35,8 +119,16 @@ class Entity:
     def property_map(self) -> dict[str, Scalar]:
         return dict(self.properties)
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Entity):
+            return NotImplemented
+        return self.entity_id == other.entity_id and _properties_identity(self.properties) == _properties_identity(other.properties)
 
-@dataclass(frozen=True)
+    def __hash__(self) -> int:
+        return hash((self.entity_id, _properties_identity(self.properties)))
+
+
+@dataclass(frozen=True, eq=False)
 class Fact:
     fact_id: int
     subject: str
@@ -49,6 +141,29 @@ class Fact:
     def property_map(self) -> dict[str, Scalar]:
         return dict(self.properties)
 
+    @property
+    def key(self) -> tuple[str, str, Scalar]:
+        return self.subject, self.predicate, self.object
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Fact):
+            return NotImplemented
+        return (
+            self.fact_id == other.fact_id
+            and self.subject == other.subject
+            and self.predicate == other.predicate
+            and scalar_equal(self.object, other.object)
+            and self.provenance == other.provenance
+            and self.confidence == other.confidence
+            and _properties_identity(self.properties) == _properties_identity(other.properties)
+        )
+
+    def __hash__(self) -> int:
+        return hash((
+            self.fact_id, self.subject, self.predicate, scalar_identity(self.object),
+            self.provenance, self.confidence, _properties_identity(self.properties),
+        ))
+
 
 class KnowledgeStore:
     """Versioned entity/fact store with indexes for the three fact positions."""
@@ -56,10 +171,10 @@ class KnowledgeStore:
     def __init__(self) -> None:
         self._entities: dict[str, Entity] = {}
         self._facts: dict[int, Fact] = {}
-        self._fact_keys: dict[tuple[str, str, Hashable], int] = {}
+        self._fact_keys: dict[FactIdentity, int] = {}
         self._by_subject: dict[str, set[int]] = {}
         self._by_predicate: dict[str, set[int]] = {}
-        self._by_object: dict[Hashable, set[int]] = {}
+        self._by_object: dict[ScalarIdentity, set[int]] = {}
         self._next_fact_id = 1
         self.version = 0
 
@@ -79,10 +194,6 @@ class KnowledgeStore:
     def _scalar(value: Scalar) -> Scalar:
         if not isinstance(value, (str, int, float, bool)) and value is not None:
             raise TypeError("fact objects and properties must be scalar values")
-        try:
-            hash(value)
-        except TypeError as exc:
-            raise TypeError("fact object must be hashable") from exc
         return value
 
     @staticmethod
@@ -113,7 +224,7 @@ class KnowledgeStore:
         normalized = self._properties(properties)
         existing = self._entities.get(entity_id)
         if existing is not None:
-            if normalized and existing.properties != normalized:
+            if normalized and _properties_identity(existing.properties) != _properties_identity(normalized):
                 raise ValueError(f"entity already exists with different properties: {entity_id}")
             return existing
         entity = Entity(entity_id, normalized)
@@ -152,10 +263,12 @@ class KnowledgeStore:
         subject = self._entity_id(subject)
         predicate = self._predicate(predicate)
         object = self._scalar(object)
+        if provenance is not None and not isinstance(provenance, Provenance):
+            raise TypeError("provenance must be Provenance or None")
         confidence = self._confidence(confidence)
         if subject not in self._entities:
             raise KeyError(f"unknown subject entity: {subject}")
-        key = (subject, predicate, object)
+        key = (subject, predicate, scalar_identity(object))
         existing_id = self._fact_keys.get(key)
         if existing_id is not None:
             return self._facts[existing_id], False
@@ -173,7 +286,7 @@ class KnowledgeStore:
         self._fact_keys[key] = fact.fact_id
         self._by_subject.setdefault(subject, set()).add(fact.fact_id)
         self._by_predicate.setdefault(predicate, set()).add(fact.fact_id)
-        self._by_object.setdefault(object, set()).add(fact.fact_id)
+        self._by_object.setdefault(scalar_identity(object), set()).add(fact.fact_id)
         self.version += 1
         return fact, True
 
@@ -188,10 +301,10 @@ class KnowledgeStore:
     def remove_fact(self, fact_id: int) -> Fact:
         fact = self.get_fact(fact_id)
         del self._facts[fact.fact_id]
-        del self._fact_keys[(fact.subject, fact.predicate, fact.object)]
+        del self._fact_keys[(fact.subject, fact.predicate, scalar_identity(fact.object))]
         self._by_subject[fact.subject].remove(fact.fact_id)
         self._by_predicate[fact.predicate].remove(fact.fact_id)
-        self._by_object[fact.object].remove(fact.fact_id)
+        self._by_object[scalar_identity(fact.object)].remove(fact.fact_id)
         self.version += 1
         return fact
 
@@ -208,18 +321,15 @@ class KnowledgeStore:
             predicate = self._predicate(predicate)
         if object is not ...:
             object = self._scalar(object)
-        candidates: set[int] | None = None
+        candidates: set[int]
         indexes = []
         if subject is not None:
             indexes.append(self._by_subject.get(subject, set()))
         if predicate is not None:
             indexes.append(self._by_predicate.get(predicate, set()))
         if object is not ...:
-            indexes.append(self._by_object.get(object, set()))
-        if indexes:
-            candidates = set(min(indexes, key=len))
-        else:
-            candidates = set(self._facts)
+            indexes.append(self._by_object.get(scalar_identity(object), set()))
+        candidates = set(min(indexes, key=len)) if indexes else set(self._facts)
         result = []
         for fact_id in sorted(candidates):
             fact = self._facts[fact_id]
@@ -227,7 +337,7 @@ class KnowledgeStore:
                 continue
             if predicate is not None and fact.predicate != predicate:
                 continue
-            if object is not ... and fact.object != object:
+            if object is not ... and not scalar_equal(fact.object, object):
                 continue
             result.append(fact)
         return tuple(result)
@@ -236,9 +346,11 @@ class KnowledgeStore:
         entity = self.get_entity(entity_id)
         if not isinstance(name, str) or not name.strip():
             raise ValueError("property name must be a non-empty string")
+        properties = entity.property_map()
         if value is ...:
-            return (entity,) if name in entity.property_map() else ()
-        return (entity,) if entity.property_map().get(name, ...) == self._scalar(value) else ()
+            return (entity,) if name in properties else ()
+        current = properties.get(name, ...)
+        return (entity,) if current is not ... and scalar_equal(current, self._scalar(value)) else ()
 
     def stats(self) -> dict[str, int]:
         return {

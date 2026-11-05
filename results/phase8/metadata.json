@@ -1,0 +1,32 @@
+{
+  "acceptance_seed_target": 30,
+  "benchmark": "phase8_bench.py",
+  "calibration_queries_per_session": 3,
+  "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "families": [
+    "sparse_graphs",
+    "dense_graphs",
+    "dependency_chains",
+    "multiple_relations",
+    "multiple_proofs",
+    "contradictions",
+    "open_variable_queries",
+    "frequent_insertions",
+    "frequent_removals",
+    "rule_changes"
+  ],
+  "holdout_learning_enabled": false,
+  "holdout_queries_per_session": 5,
+  "machine": "x86_64",
+  "meets_seed_target": true,
+  "note": "No external benchmark data or confidence probabilities are fabricated; unavailable metrics remain null.",
+  "oracles": "independent exhaustive fixed-point evaluator plus full InferenceEngine recomputation",
+  "platform": "Linux-6.18.38+-x86_64-with-glibc2.39",
+  "project": "AETHER Phase 8",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "rust_measurement_scope": "conversion and native graph construction/refresh only; no end-to-end superiority claim",
+  "seeds_per_family": 30,
+  "sessions": 300,
+  "synthetic_data_only": true,
+  "total_physical_memory_bytes": 25604427776
+}

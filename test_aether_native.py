@@ -1,8 +1,10 @@
 import ctypes
+import gc
 import shutil
 import sys
 import tempfile
 import unittest
+import uuid
 from array import array
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -20,7 +22,8 @@ class RustDynamicGraphTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix="aether-native-test-")
         suffix = ".dll" if sys.platform == "win32" else ".dylib" if sys.platform == "darwin" else ".so"
         filename = "aether_native" + suffix if suffix == ".dll" else "libaether_native" + suffix
-        cls.library = compile_native(Path(cls.tmp.name) / filename)
+        build_dir = Path(__file__).resolve().parent / "build" / f"test-native-{uuid.uuid4().hex}"
+        cls.library = compile_native(build_dir / filename)
         cls.lib = ctypes.CDLL(str(cls.library))
         cls.lib.aether_graph_abi_version.argtypes = []
         cls.lib.aether_graph_abi_version.restype = ctypes.c_uint32
@@ -42,6 +45,7 @@ class RustDynamicGraphTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        gc.collect()
         if hasattr(cls, "tmp"):
             cls.tmp.cleanup()
 

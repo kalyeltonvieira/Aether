@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Phase 2 controlled dynamic-reachability benchmark; standard library only."""
 from __future__ import annotations
-import argparse, csv, json, os, pickle, random, resource, statistics, subprocess, sys, time
+import argparse, csv, json, os, pickle, random, statistics, subprocess, sys, time
 from pathlib import Path
+from aether_metrics import peak_rss_bytes
 
 ALGORITHMS = ('bfs', 'bitset_bfs', 'incremental_closure_dual', 'aether_rows_only', 'adaptive')
 
@@ -143,8 +144,8 @@ def worker(algorithm, n, initial, added, scheduled):
         upd_ns += time.perf_counter_ns() - t
     cpu_ms = (time.process_time_ns() - cpu_start_ns) / 1e6
     serialized = len(pickle.dumps(state, protocol=pickle.HIGHEST_PROTOCOL))
-    # Linux reports KiB; macOS reports bytes. This benchmark runs on Linux, label explicitly.
-    rss_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    peak_bytes = peak_rss_bytes()
+    rss_kib = peak_bytes / 1024 if peak_bytes is not None else None
     return {'algorithm': requested_algorithm, 'selected_strategy': algorithm,
             **estimate, 'build_ms': build_ns / 1e6, 'update_ms': upd_ns / 1e6,
             'query_ms': query_ns / 1e6, 'total_ms': (build_ns + upd_ns + query_ns) / 1e6,
@@ -206,7 +207,7 @@ def main():
       'methodology':'Synthetic deterministic directed graphs; 30 seeds by default per scenario. Each strategy executes in a separate child process for isolated peak RSS. Wall-clock timing uses no tracing/profiler and separates initial build, updates and queries; process CPU time is measured independently across algorithm work. BFS is exact oracle; bitset_bfs is conventional frontier search using integer adjacency masks; incremental_closure_dual maintains rows plus a transpose; aether_rows_only tests removal of the duplicate transpose; adaptive applies a cost model calibrated on phase-2 pilot medians to choose between bitset_bfs and aether_rows_only. Timings exclude process launch, data generation, serialization and output. No direct energy or FLOP measurement.',
       'configurations':configs,'seeds_per_configuration':args.seeds,'runs':len(records),'summary':grouped,
       'controller_model':'closure_ns = 55*n*(initial_edges+updates)+130*queries; bitset_ns = 140*(initial_edges+updates)+6000*(n/120)*queries. Coefficients are approximate pilot-derived nanosecond costs for this interpreter/hardware and tested graph family, not portable constants. The lower predicted-cost strategy is selected; compare actual measured totals to predictions.',
-      'limits':['Synthetic random workloads only.','RSS is ru_maxrss for isolated Linux process (KiB), includes interpreter and workload input.','Operation proxy counts differ by algorithm and are not FLOPs.','No direct energy measurement.','Controller coefficients require recalibration on new hardware or workload families.']}
+      'limits':['Synthetic random workloads only.','Process peak RSS is reported in KiB using the platform API; null denotes an unavailable OS measurement. It includes the interpreter and workload input.','Operation proxy counts differ by algorithm and are not FLOPs.','No direct energy measurement.','Controller coefficients require recalibration on new hardware or workload families.']}
     (out/'summary.json').write_text(json.dumps(payload,indent=2),encoding='utf-8')
     print(json.dumps(grouped,indent=2))
     print(f"PASS: {len(records)} strategy-runs, exact answers; outputs at {out}")
