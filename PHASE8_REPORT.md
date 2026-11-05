@@ -106,11 +106,11 @@ Medianas observadas por consulta holdout para trabalho e memória/manutenção (
 
 ## 5. Estado da matriz CI e pendências
 
-**CI de acompanhamento:** [run 42089464628](https://github.com/kalyeltonvieira/Aether/actions/runs/42089464628) também terminou globalmente com falha. Linux passou em 3/3 e macOS passou em 3/3; Windows ainda falhou em 3/3 com `PermissionError` ao apagar `aether_native.dll` durante os teardowns de `test_aether_native` e `test_phase5_bench`. Além de liberar a referência ctypes ao fechar o grafo e coletar ciclos, a revisão seguinte move a DLL compilada para diretório exclusivo dentro de `build/` (ignorado pelo Git), separado dos `TemporaryDirectory` de dados que os testes limpam. O teste local dos 21 casos nativos/Phase 5 passou; **a nova CI ainda precisa confirmar a correção em Windows**. A matriz continua pendente e não deve ser declarada verde.
+**CI final:** [run 42090138094](https://github.com/kalyeltonvieira/Aether/actions/runs/42090138094), SHA `0a71d3593221fa40e5cfad48864c1c028000794f`, terminou com sucesso em **9/9 jobs**: Ubuntu, macOS e Windows, cada um com Python 3.10, 3.12 e 3.13. Os nove jobs passaram build sdist/wheel, verificação de conteúdo do wheel e suíte completa. A correção decisiva separa a DLL nativa do `TemporaryDirectory` que os testes removem; `RustDynamicGraph.close()` também solta a referência ctypes, e as fixtures coletam ciclos. As execuções anteriores (42086731767 e 42089464628) falharam em Windows com `PermissionError`; os problemas foram corrigidos e a run final verde confirma a matriz pedida. A CI foi executada na branch `phase8`, sem merge.
 
 Pendências/limites remanescentes:
 
-1. A próxima CI precisa validar se o diretório separado `build/` resolve o bloqueio DLL; confirmar Windows 3/3 e todos os outros seis jobs verdes. A segunda execução ficou Windows 0/3, Linux 3/3 e macOS 3/3.
+1. A matriz exigida passou em todos os nove pares OS/Python no run 42090138094. Limites restantes são de escopo/compatibilidade documentados abaixo, não falhas CI pendentes.
 2. Os workloads são sintéticos e pequenos; os números não se generalizam a grafos de produção ou às projeções SNAP.
 3. Remoções e mudanças de regras usam recomputação conservadora quando a completude incremental não é demonstrável.
 4. A integração Rust é medida quanto a conversão/construção/refresh; o controlador não seleciona um motor simbólico Rust e nenhum ganho end-to-end é alegado.
@@ -132,10 +132,10 @@ Pendências/limites remanescentes:
 | Índice Rust detecta snapshot obsoleto | Atendido | Testes de stale, refresh e semântica direta/transitiva. |
 | Python/Rust semanticamente equivalentes | Atendido nos testes executados | Matriz completa de SO ainda pendente. |
 | Controlador avaliado em sessões reais de queries | Atendido como sequência sintética | 300 sessões; holdout congelado; resultados sem alegação de superioridade. |
-| CI efetivamente passa nas plataformas | Parcial; follow-up pendente | Run 42086731767: Linux 3/3, macOS 2/3 (um cancelado), Windows 0/3. Run 42089464628: Linux 3/3, macOS 3/3, Windows 0/3. Correção de paths das DLLs ainda sem CI. |
+| CI efetivamente passa nas plataformas | Atendido | Run 42090138094: 9/9 sucesso — Windows/macOS/Linux × Python 3.10/3.12/3.13. As runs anteriores que falharam permanecem registradas acima. |
 | Benchmarks reproduzíveis | Atendido | 30 seeds/família, hashes, CSV/JSON e metadados. |
 | Histórico anterior preservado | Atendido localmente | A branch parte da `main` auditada; sem merge automático. |
 
 ## 7. Publicação
 
-A branch `phase8` foi publicada sem merge automático. A CI encontrou problemas reais de teardown DLL no Windows; liberação ctypes, GC e paths de build separados estão na branch, mas só podem ser considerados resolvidos após a próxima matriz verde.
+A branch `phase8` foi publicada sem merge automático. Os problemas de teardown DLL encontrados em duas execuções foram corrigidos; a matriz final passou 9/9 em `0a71d35`.
