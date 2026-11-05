@@ -14,7 +14,10 @@ import time
 from pathlib import Path
 
 from aether_dependencies import DependencyTracker
+from aether_backward import BackwardInference
+from aether_hybrid import HybridInference
 from aether_inference import InferenceEngine, InferenceLimits, Pattern, Rule
+from aether_incremental import IncrementalInference
 from aether_knowledge import KnowledgeStore, Provenance
 
 
@@ -53,6 +56,16 @@ def measure(seed: int, scenario: str, nodes: int, extra_edges: int, repeats: int
 
     target = ("e0", "link", f"e{nodes - 1}")
     start = time.perf_counter()
+    backward = BackwardInference(store, (RULE,)).prove(target)
+    backward_ms = (time.perf_counter() - start) * 1000
+    rows.append({"seed": seed, "split": "calibration" if seed < 15 else "holdout", "scenario": scenario, "method": "backward_chain", "latency_ms": backward_ms, "facts_examined": backward.operations, "operations": backward.operations, "conclusions": int(backward.proven), "complete": int(backward.complete), "explanation_ms": 0.0, "invalidated": 0})
+
+    start = time.perf_counter()
+    hybrid = HybridInference(store, (RULE,)).prove(target, forward_limits=limits)
+    hybrid_ms = (time.perf_counter() - start) * 1000
+    rows.append({"seed": seed, "split": "calibration" if seed < 15 else "holdout", "scenario": scenario, "method": "hybrid_chain", "latency_ms": hybrid_ms, "facts_examined": hybrid.operations, "operations": hybrid.operations, "conclusions": int(hybrid.proven), "complete": int(hybrid.complete), "explanation_ms": 0.0, "invalidated": 0})
+
+    start = time.perf_counter()
     for _ in range(repeats):
         hit = next((fact for fact in result.conclusions if fact.key == target), None)
     cached_ms = (time.perf_counter() - start) * 1000
@@ -66,6 +79,21 @@ def measure(seed: int, scenario: str, nodes: int, extra_edges: int, repeats: int
         store.remove_fact(first.fact_id)
         invalidation_ms = (time.perf_counter() - start) * 1000
         rows.append({"seed": seed, "split": "calibration" if seed < 15 else "holdout", "scenario": scenario, "method": "localized_invalidation", "latency_ms": invalidation_ms, "facts_examined": invalidation.conclusions_visited, "operations": invalidation.conclusions_visited, "conclusions": invalidation.remaining_conclusions, "complete": 0, "explanation_ms": 0.0, "invalidated": invalidation.conclusions_invalidated})
+
+    incremental_store = build_store(seed, nodes, extra_edges)
+    incremental = IncrementalInference(incremental_store, (RULE,))
+    incremental.initialize(limits)
+    absent = next((
+        (f"e{a}", f"e{b}")
+        for a in range(nodes)
+        for b in range(nodes)
+        if a != b and not incremental_store.query(subject=f"e{a}", predicate="link", object=f"e{b}")
+    ), None)
+    if absent is not None:
+        start = time.perf_counter()
+        _, update = incremental.add_fact(absent[0], "link", absent[1], provenance=Provenance("phase7-benchmark"))
+        incremental_ms = (time.perf_counter() - start) * 1000
+        rows.append({"seed": seed, "split": "calibration" if seed < 15 else "holdout", "scenario": scenario, "method": "incremental_insertion", "latency_ms": incremental_ms, "facts_examined": update.facts_examined, "operations": update.operations, "conclusions": len(update.new_conclusions), "complete": int(update.complete), "explanation_ms": 0.0, "invalidated": 0})
 
     start = time.perf_counter()
     target_fact = result.by_key(target)

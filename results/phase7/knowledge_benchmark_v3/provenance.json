@@ -1,0 +1,10 @@
+{
+  "source": "local deterministic generator",
+  "license": "not applicable; generated fixture",
+  "seed_policy": "independent random.Random seeds",
+  "transformations": [
+    "explicit entity creation",
+    "directed link facts",
+    "no external data"
+  ]
+}
