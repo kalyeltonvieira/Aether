@@ -1,0 +1,136 @@
+{
+  "title": "AETHER Phase 5 — temporal event-log prototype",
+  "dataset": {
+    "id": "sx-askubuntu",
+    "name": "sx-askubuntu — temporal Ask Ubuntu network",
+    "snap_page": "https://snap.stanford.edu/data/sx-askubuntu.html",
+    "download_url": "https://snap.stanford.edu/data/sx-askubuntu.txt.gz",
+    "license_or_terms": "Não foi localizada licença/termos específicos para sx-askubuntu. A BSD é para o software SNAP e não foi atribuída aos dados.",
+    "archive_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+    "archive_bytes": 7385842,
+    "official_nodes": 159316,
+    "official_temporal_events": 964437,
+    "official_static_edges": 596933,
+    "direction": "directed; original event arcs are preserved; no reverse arcs are added",
+    "official_event_semantics": "Cada linha SRC DST UNIXTS representa uma interação dirigida: resposta de u à pergunta de v, comentário de u na pergunta de v ou comentário de u na resposta de v. Eventos agregam os subgrafos a2q, c2q e c2a."
+  },
+  "parsed": {
+    "event_records": 964437,
+    "unique_directed_relations": 596933,
+    "repeated_interaction_events": 367504,
+    "external_node_ids_in_file": 159316,
+    "declared_nodes": 159316,
+    "internal_nodes": 159316,
+    "unlisted_nodes_preserved_as_isolates": 0,
+    "ids_relabelled_to_dense_range": true,
+    "comment_lines_skipped": 0,
+    "input_timestamps_non_decreasing": false,
+    "events_reordered_by_timestamp": true,
+    "same_timestamp_tie_order": "original file row order",
+    "first_timestamp_unix_seconds": 1231431607,
+    "last_timestamp_unix_seconds": 1457266069,
+    "observed_window_days": 2613.8247916666664,
+    "official_temporal_event_count": 964437,
+    "official_static_edge_count": 596933
+  },
+  "transforms": [
+    "each raw event remains a distinct log row, including repeated interactions",
+    "event application is directed and uses operation='add'; repeated edge events are no-op graph updates but remain in history",
+    "internal node IDs are relabelled only if original IDs fall outside the declared 0..n-1 range; this is recorded in parsed metadata",
+    "if input timestamps are not non-decreasing, events are stably sorted by (timestamp, original row order)",
+    "the public dataset contains interaction events, not relation deletions; removal support is tested separately by the prototype tests"
+  ],
+  "architecture": {
+    "live_state": "one mutable compact Python adjacency graph",
+    "event_log": "parallel arrays: uint64 timestamp, uint32 source, uint32 target, uint8 operation; sequence index is array position",
+    "historical_state": "reconstructed on demand by replay through the selected timestamp; no historical graph snapshots are cached",
+    "cache_count": 0,
+    "same_timestamp_order": "stable original input order"
+  },
+  "measurements": {
+    "n": 159316,
+    "event_count": 964437,
+    "new_unique_relation_events": 596933,
+    "repeated_or_noop_events": 367504,
+    "current_unique_directed_edges": 596933,
+    "current_exact_vs_independent_replay": true,
+    "ingest_ms": 9157.59489,
+    "parse_ms": 2055.311482,
+    "sort_ms": 313.767986,
+    "end_to_end_ms_including_parse_sort_and_ingest": 33917.312556,
+    "history_log_bytes_estimate": 17361647,
+    "current_graph_bytes_estimate": 17706308,
+    "log_plus_current_graph_bytes_estimate": 35067955,
+    "materialized_snapshots_count": 5,
+    "materialized_snapshots_graph_bytes_estimate": 79886336,
+    "materialized_snapshots_container_bytes_estimate": 240,
+    "log_plus_current_vs_snapshots_only_bytes_ratio": 0.4389731305238483,
+    "historical_reconstruction_median_ms": 2671.812437,
+    "rss_before_ingest_bytes": 358400000,
+    "rss_after_experiment_bytes": 376180736,
+    "process_peak_rss_bytes": 416251904,
+    "historical_reconstruction_max_ms": 8042.529188
+  },
+  "checkpoints": [
+    {
+      "timestamp_unix_seconds": 1320305568,
+      "events_in_state": 96444,
+      "directed_edges_in_state": 62580,
+      "reconstruction_ms": 456.016432,
+      "independent_oracle_ms_excluded": 205.622006,
+      "materialized_snapshot_bytes_estimate": 14380848,
+      "edge_sha256": "d6fcff80795fcb893e6019c27e018f5aaf18e2f512c8f6ac87965f12c1f24ba9",
+      "exact_vs_independent_replay": true
+    },
+    {
+      "timestamp_unix_seconds": 1348687437,
+      "events_in_state": 241110,
+      "directed_edges_in_state": 158367,
+      "reconstruction_ms": 1107.469456,
+      "independent_oracle_ms_excluded": 293.64307,
+      "materialized_snapshot_bytes_estimate": 14962536,
+      "edge_sha256": "0e899ca93ed1a77d1143303abff92dd129dca1bb75d1607db4d6880c7091dc16",
+      "exact_vs_independent_replay": true
+    },
+    {
+      "timestamp_unix_seconds": 1390849080,
+      "events_in_state": 482219,
+      "directed_edges_in_state": 317129,
+      "reconstruction_ms": 2671.812437,
+      "independent_oracle_ms_excluded": 414.936712,
+      "materialized_snapshot_bytes_estimate": 15966452,
+      "edge_sha256": "75c2ea18ecfccf55dbb49b6a79cd2571b0bfc970dc3954ba62c8e1c21d1b6afd",
+      "exact_vs_independent_replay": true
+    },
+    {
+      "timestamp_unix_seconds": 1427083874,
+      "events_in_state": 723328,
+      "directed_edges_in_state": 462852,
+      "reconstruction_ms": 4637.555113,
+      "independent_oracle_ms_excluded": 523.900617,
+      "materialized_snapshot_bytes_estimate": 16870192,
+      "edge_sha256": "b2bd5f8640cd02615c591bfa4fb3346a3a52db1304e09a04d242490e99a266d8",
+      "exact_vs_independent_replay": true
+    },
+    {
+      "timestamp_unix_seconds": 1457266069,
+      "events_in_state": 964437,
+      "directed_edges_in_state": 596933,
+      "reconstruction_ms": 8042.529188,
+      "independent_oracle_ms_excluded": 672.532777,
+      "materialized_snapshot_bytes_estimate": 17706308,
+      "edge_sha256": "6eb858adc6b90d98316a2b9e1e2f377580cf1852940a3e696edd03a47db91c91",
+      "exact_vs_independent_replay": true
+    }
+  ],
+  "limitations": [
+    "The event log supports add and remove records, but the selected SNAP temporal dataset supplies interaction/add events only; its timestamped events are not observed deletions.",
+    "Historical reconstruction is O(number of events up to the queried time); without checkpoints, old-state queries can become expensive.",
+    "The memory figures use Python sys.getsizeof estimates for adjacency and array capacities; allocator fragmentation and process RSS are reported separately.",
+    "Snapshot comparison keeps five selected reconstructed graph objects simultaneously to estimate the cost of materializing history; it does not retain these snapshots in the prototype itself.",
+    "The source pages do not publish dataset-specific license terms; unknown status is preserved rather than inferring the software SNAP BSD license for the data.",
+    "Only five temporal checkpoints were sampled; the slowest reconstruction is reported as the maximum observed, not as a P95 estimate."
+  ],
+  "checkpoint_csv": "/home/ubuntu/Aether/results/phase5/temporal_history/temporal_checkpoints.csv",
+  "archive_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6"
+}

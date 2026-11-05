@@ -1,0 +1,169 @@
+{
+  "collection": "Stanford Network Analysis Project (SNAP) — Stanford Large Network Dataset Collection",
+  "index_url": "https://snap.stanford.edu/data/index.html",
+  "license_scope_note": "The SNAP BSD license is for the SNAP software. No dataset-specific license or terms were located for the listed data files; do not infer BSD applies to datasets.",
+  "datasets": [
+    {
+      "id": "email-eu-core",
+      "name": "email-Eu-core",
+      "snap_page": "https://snap.stanford.edu/data/email-Eu-core.html",
+      "download_url": "https://snap.stanford.edu/data/email-Eu-core.txt.gz",
+      "filename": "email-Eu-core.txt.gz",
+      "sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+      "nodes": 1005,
+      "edges": 25571,
+      "directed": true,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; a página não publica o esquema completo das linhas de arestas.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para os dados email-Eu-core nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/email-Eu-core.html",
+        "https://snap.stanford.edu/data/email-Eu-core.txt.gz",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/snap/license.html"
+      ],
+      "file_size_bytes": 79754,
+      "local_archive_excluded_from_git": true
+    },
+    {
+      "id": "wiki-vote",
+      "name": "wiki-Vote — Wikipedia vote network",
+      "snap_page": "https://snap.stanford.edu/data/wiki-Vote.html",
+      "download_url": "https://snap.stanford.edu/data/wiki-Vote.txt.gz",
+      "filename": "wiki-Vote.txt.gz",
+      "sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+      "nodes": 7115,
+      "edges": 103689,
+      "narrative_vote_count": 103663,
+      "directed": true,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; delimitador, cabeçalho e esquema não são especificados na página.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para wiki-Vote nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/wiki-Vote.html",
+        "https://snap.stanford.edu/data/wiki-Vote.txt.gz",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/snap/license.html",
+        "https://snap.stanford.edu/about.html"
+      ],
+      "file_size_bytes": 290339,
+      "local_archive_excluded_from_git": true
+    },
+    {
+      "id": "soc-epinions1",
+      "name": "soc-Epinions1 — Epinions social network",
+      "snap_page": "https://snap.stanford.edu/data/soc-Epinions1.html",
+      "download_url": "https://snap.stanford.edu/data/soc-Epinions1.txt.gz",
+      "filename": "soc-Epinions1.txt.gz",
+      "sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+      "nodes": 75879,
+      "edges": 508837,
+      "directed": true,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; a página não publica o esquema completo de colunas.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para soc-Epinions1. O SNAP BSD aplica-se ao software; não foi atribuída aos dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/soc-Epinions1.html",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/snap/license.html",
+        "https://snap.stanford.edu/about.html"
+      ],
+      "file_size_bytes": 1630437,
+      "local_archive_excluded_from_git": true
+    },
+    {
+      "id": "web-stanford",
+      "name": "web-Stanford — Stanford web graph",
+      "snap_page": "https://snap.stanford.edu/data/web-Stanford.html",
+      "download_url": "https://snap.stanford.edu/data/web-Stanford.txt.gz",
+      "filename": "web-Stanford.txt.gz",
+      "sha256": null,
+      "nodes": 281903,
+      "edges": 2312497,
+      "directed": true,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; a página não publica o esquema interno.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para web-Stanford; não inferir BSD a partir da licença do software SNAP.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/web-Stanford.html",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/data/web-Stanford.txt.gz",
+        "https://snap.stanford.edu/snap/license.html",
+        "https://snap.stanford.edu/about.html",
+        "https://snap.stanford.edu/citing.html"
+      ]
+    },
+    {
+      "id": "web-google",
+      "name": "web-Google — Google web graph",
+      "snap_page": "https://snap.stanford.edu/data/web-Google.html",
+      "download_url": "https://snap.stanford.edu/data/web-Google.txt.gz",
+      "filename": "web-Google.txt.gz",
+      "sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+      "nodes": 875713,
+      "edges": 5105039,
+      "directed": true,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; a página não publica o esquema interno completo.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para o dataset web-Google. A BSD encontrada licencia o software SNAP, não os dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/web-Google.html",
+        "https://snap.stanford.edu/data/web-Google.txt.gz",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/snap/license.html",
+        "https://snap.stanford.edu/citing.html",
+        "https://snap.stanford.edu/about.html"
+      ],
+      "file_size_bytes": 21168784,
+      "local_archive_excluded_from_git": true
+    },
+    {
+      "id": "roadnet-ca",
+      "name": "roadNet-CA — California road network",
+      "snap_page": "https://snap.stanford.edu/data/roadNet-CA.html",
+      "download_url": "https://snap.stanford.edu/data/roadNet-CA.txt.gz",
+      "filename": "roadNet-CA.txt.gz",
+      "sha256": null,
+      "nodes": 1965206,
+      "edges": 2766607,
+      "directed": false,
+      "temporal": false,
+      "original_format": "TXT distribuído comprimido com gzip; arestas originais não dirigidas.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para roadNet-CA. A BSD encontrada licencia o software SNAP, não os dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/roadNet-CA.html",
+        "https://snap.stanford.edu/data/roadNet-CA.txt.gz",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/snap/license.html"
+      ]
+    },
+    {
+      "id": "sx-askubuntu",
+      "name": "sx-askubuntu — temporal Ask Ubuntu network",
+      "snap_page": "https://snap.stanford.edu/data/sx-askubuntu.html",
+      "download_url": "https://snap.stanford.edu/data/sx-askubuntu.txt.gz",
+      "filename": "sx-askubuntu.txt.gz",
+      "sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+      "nodes": 159316,
+      "edges": 596933,
+      "static_edges": 596933,
+      "temporal_events": 964437,
+      "directed": true,
+      "temporal": true,
+      "temporal_window_days": 2613,
+      "event_semantics": "Cada linha SRC DST UNIXTS representa uma interação dirigida: resposta de u à pergunta de v, comentário de u na pergunta de v ou comentário de u na resposta de v. Eventos agregam os subgrafos a2q, c2q e c2a.",
+      "original_format": "TXT comprimido com gzip; três campos documentados: SRC DST UNIXTS; UNIXTS é timestamp Unix em segundos.",
+      "license_or_terms": "Não foi localizada licença/termos específicos para sx-askubuntu. A BSD é para o software SNAP e não foi atribuída aos dados.",
+      "official_sources": [
+        "https://snap.stanford.edu/data/sx-askubuntu.html",
+        "https://snap.stanford.edu/data/sx-askubuntu.txt.gz",
+        "https://snap.stanford.edu/data/index.html",
+        "https://snap.stanford.edu/temporal-motifs/data.html",
+        "https://snap.stanford.edu/snap/license.html",
+        "https://snap.stanford.edu/citing.html"
+      ],
+      "file_size_bytes": 7385842,
+      "local_archive_excluded_from_git": true
+    }
+  ]
+}

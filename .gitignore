@@ -20,3 +20,8 @@ results/phase3/**/rust_*kernel
 
 /build/
 **/libaether_native.so
+**/libaether_native.dylib
+**/aether_native.dll
+
+# Official SNAP archives are reproducible inputs, not repository artifacts
+/data/phase5_snap/
