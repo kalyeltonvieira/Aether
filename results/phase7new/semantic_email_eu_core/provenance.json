@@ -1,0 +1,12 @@
+{
+  "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+  "comment_lines": 0,
+  "dataset_id": "email-eu-core",
+  "duplicate_records": 0,
+  "edge_records": 25571,
+  "malformed_lines": [],
+  "node_count": 1005,
+  "predicate": "sent_email_to",
+  "source_url": "https://snap.stanford.edu/data/email-Eu-core.html",
+  "unique_facts": 25571
+}
