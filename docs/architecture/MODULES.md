@@ -10,5 +10,8 @@
 | Native | `aether.native.bindings` e `aether.native/rust/aether_native.rs` |
 | Adapters | `aether.adapters.snap_semantic` |
 | Métricas de ferramenta | `aether.metrics` (portabilidade de medições, não política do grafo) |
+| API REST/WebSocket | `aether.interfaces.api`: app, schemas, routes, services, dependencies e websocket; compõe núcleo, validação e sessão |
+| Studio independente | `frontend/`: React/TypeScript/Vite, páginas, componentes, serviços de API e hooks de atualização |
+| Operação local | `scripts/run_studio.py` e entrypoints shell/PowerShell; inicia e encerra os processos locais |
 
 Os módulos flat antigos em `src/aether_*.py` são aliases de transição para manter imports consumidores; o código de domínio existe apenas no caminho canônico.

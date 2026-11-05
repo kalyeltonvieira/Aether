@@ -29,3 +29,18 @@ results/phase3/**/rust_*kernel
 
 # Official SNAP archives are reproducible inputs, not repository artifacts
 /data/phase5_snap/
+
+# Studio runtime data and frontend artifacts (never commit credentials)
+node_modules/
+.aether-data/
+.aether-test-data/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+.env
+.env.*
+!.env.example
+*.sqlite3-wal
+*.sqlite3-shm

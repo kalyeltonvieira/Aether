@@ -57,3 +57,36 @@ Os relatórios, auditorias e procedimentos históricos foram movidos sem apagar 
 ## Licença e segurança
 
 O código é distribuído sob MIT (consulte `LICENSE`). Para reporte responsável de vulnerabilidades, consulte `SECURITY.md`.
+
+## AETHER Studio — evolução da plataforma
+
+A branch `evolution/aether-platform` acrescenta evidências múltiplas e paginação, snapshots semânticos verificáveis, cold tier SQLite, padrões globalmente limitados, Event Engine durável, planejamento seletivo medido e a camada independente FastAPI + React/TypeScript/Vite. As branches históricas e seus resultados permanecem preservados; esta entrega não faz merge automático em `main`.
+
+```bash
+python -m pip install -e ".[api]"
+pnpm --dir frontend install --frozen-lockfile
+python scripts/run_studio.py
+```
+
+Abra `http://localhost:3000`. API/Studio exigem autenticação: token de operador configurado no servidor na instalação independente, ou Manus OAuth no ambiente gerenciado. Operadores OAuth são explicitamente autorizados; identidade autenticada não basta para escrever. Não há segredos embutidos no cliente. Dados locais ficam em `.aether-data/`, ignorados por Git. O launcher encerra ambos os processos no Ctrl+C e admite `--api-only`/`--frontend-only`. Detalhes no [guia Studio](docs/development/WEB_STUDIO.md), [API](docs/architecture/API.md), [plataforma](docs/architecture/PLATFORM.md) e nos setups Windows/Linux.
+
+Dashboard, exploração/CRUD de conhecimento, grafo, consultas, provas, memória, eventos, desempenho e configurações usam o núcleo real. Métricas indisponíveis são `null`/“indisponível”; resultados incompletos continuam explícitos; frequência operacional nunca é tratada como verdade semântica. O Event Engine entrega at-least-once e não promete exactly-once.
+
+### Validação e medições
+
+```bash
+python -m unittest discover -s tests -v
+pnpm --dir frontend typecheck
+pnpm --dir frontend test
+pnpm --dir frontend build
+```
+
+O [relatório de eficiência](docs/architecture/EFFICIENCY.md) registra ganho de 1,626× do join seletivo no holdout seletivo e empate no balanceado. O controller adaptativo manteve equivalência em 2.400 consultas, mas perdeu das fixas em nove famílias: permanece opt-in, não é estratégia padrão da API. O ciclo Rust de grafos, incluindo build/FFI/atualização/recuperação, ganhou 3,694× no esparso e 1,561× no denso em holdout; isso não é uma alegação de ganho de inferência simbólica. Os [benchmarks operacionais](docs/architecture/OPERATIONAL_BENCHMARKS.md) medem memória/eventos/snapshots com 30 seeds por família. Dados e hashes estão em `results/evolution/`, sem sobrescrever resultados antigos. Energia não foi medida.
+
+O pipeline de API/Studio foi medido novamente com 20 seeds de calibração e 10 de holdout, oráculo correto nos 30; o [relatório do benchmark API](docs/architecture/API_BENCHMARK.md) registra o custo total e suas limitações. Capturas reais da sessão browser E2E, incluindo prova com suporte e grafo, estão na [galeria do Studio](docs/development/STUDIO_SCREENSHOTS.md). A fixture e a sessão dessas imagens são efêmeras, não dados de produção.
+
+Resultados por SO, capturas reais, testes e pendências são registrados no [relatório de evolução por fase](docs/development/EVOLUTION_REPORT.md). Linux ARM64 é a validação local desta sessão; Windows/Linux x86_64 dependem de resultados efetivos da CI. Não confunda instruções/matriz configurada com aprovação de execução, nem Preview com publicação pública.
+
+![Proof Explorer real no E2E, com conclusão derivada, regra e link ao fato de suporte](docs/screenshots/studio/proofs.png)
+
+As imagens vêm de execução autenticada em store local descartável; veja a [galeria completa das telas, incluindo navegação móvel](docs/development/STUDIO_SCREENSHOTS.md). Não são capturas de dados de produção.
