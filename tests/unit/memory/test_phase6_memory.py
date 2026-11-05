@@ -9,14 +9,14 @@ from aether.memory.patterns import IncrementalPatternLearner, PatternEvent
 class AdaptiveMemoryTests(unittest.TestCase):
     def test_budget_eviction_and_cold_recovery(self):
         with tempfile.TemporaryDirectory() as folder:
-            memory = AdaptiveMemory(8, cold_store=Path(folder) / "cold.jsonl")
-            memory.put("a", b"1234")
-            memory.put("b", b"5678")
-            memory.put("c", b"zzzz")
-            self.assertLessEqual(memory.stats()["resident_bytes"], 8)
-            self.assertGreaterEqual(memory.stats()["evictions"], 1)
-            self.assertEqual(memory.get("a"), b"1234")
-            self.assertGreaterEqual(memory.stats()["hits"], 1)
+            with AdaptiveMemory(8, cold_store=Path(folder) / "cold.jsonl") as memory:
+                memory.put("a", b"1234")
+                memory.put("b", b"5678")
+                memory.put("c", b"zzzz")
+                self.assertLessEqual(memory.stats()["resident_bytes"], 8)
+                self.assertGreaterEqual(memory.stats()["evictions"], 1)
+                self.assertEqual(memory.get("a"), b"1234")
+                self.assertGreaterEqual(memory.stats()["hits"], 1)
 
     def test_frequency_tiers_and_deduplication(self):
         memory = AdaptiveMemory(100, warm_accesses=2, hot_accesses=3)
@@ -42,10 +42,14 @@ class AdaptiveMemoryTests(unittest.TestCase):
             first = AdaptiveMemory(4, cold_store=path)
             first.put("a", b"abcd")
             first.put("b", b"efgh")
+            first.close()
             second = AdaptiveMemory(4, cold_store=path)
-            self.assertEqual(second.get("a"), b"abcd")
-            second.compact()
-            self.assertTrue(path.exists())
+            try:
+                self.assertEqual(second.get("a"), b"abcd")
+                second.compact()
+                self.assertTrue(path.exists())
+            finally:
+                second.close()
 
     def test_delete_remains_deleted_after_restart(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -81,15 +85,21 @@ class AdaptiveMemoryTests(unittest.TestCase):
             memory.put("x", b"payload")
             memory.close()
 
-            with sqlite3.connect(path) as database:
+            database = sqlite3.connect(path)
+            try:
                 database.execute(
                     "UPDATE cold_entries SET payload = ? WHERE key = ?",
                     (b"tampered", "x"),
                 )
+                database.commit()
+            finally:
+                database.close()
             recovered = AdaptiveMemory(16, cold_store=path)
-            with self.assertRaisesRegex(RuntimeError, "corrupt cold-store record"):
-                recovered.get("x")
-            recovered.close()
+            try:
+                with self.assertRaisesRegex(RuntimeError, "corrupt cold-store record"):
+                    recovered.get("x")
+            finally:
+                recovered.close()
 
     def test_legacy_jsonl_migrates_and_ignores_torn_final_append(self):
         import base64

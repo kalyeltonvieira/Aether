@@ -191,8 +191,11 @@ class EventEngineTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "events.sqlite3"
-            with sqlite3.connect(path) as database:
+            database = sqlite3.connect(path)
+            try:
                 database.execute("PRAGMA user_version = 999")
+            finally:
+                database.close()
             with self.assertRaisesRegex(RuntimeError, "unsupported event database schema"):
                 EventEngine(path)
 

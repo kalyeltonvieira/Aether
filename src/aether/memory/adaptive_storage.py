@@ -128,6 +128,7 @@ class AdaptiveMemory:
             if magic != _SQLITE_MAGIC:
                 self._migrate_legacy_jsonl()
 
+        db: sqlite3.Connection | None = None
         try:
             db = sqlite3.connect(
                 str(self.cold_store), timeout=10.0, check_same_thread=False
@@ -156,8 +157,12 @@ class AdaptiveMemory:
             if check is None or check[0] != "ok":
                 raise RuntimeError(f"cold-store integrity check failed: {check}")
             self._db = db
-        except (sqlite3.Error, OSError) as exc:
-            raise RuntimeError(f"cold store is not readable: {self.cold_store}") from exc
+        except Exception as exc:
+            if db is not None:
+                db.close()
+            if isinstance(exc, (sqlite3.Error, OSError)):
+                raise RuntimeError(f"cold store is not readable: {self.cold_store}") from exc
+            raise
 
     def _migrate_legacy_jsonl(self) -> None:
         """Validate a legacy append-only journal, then replace it atomically."""

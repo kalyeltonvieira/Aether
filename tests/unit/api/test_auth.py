@@ -18,23 +18,21 @@ class StudioAuthTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.app = create_app(data_dir=self.tmp.name, auth_mode="token", token="operator-token")
         self.client = TestClient(self.app)
+        self.client.__enter__()
         response = self.client.post("/api/v1/auth/login", json={"token": "operator-token"})
         self.assertEqual(response.status_code, 200)
         self.csrf = response.json()["csrf_token"]
         self.headers = {"X-CSRF-Token": self.csrf}
 
     def tearDown(self):
-        self.client.close()
+        self.client.__exit__(None, None, None)
         self.tmp.cleanup()
 
     def test_public_health_and_protected_read(self):
-        self.client.close()
-        unauth = TestClient(create_app(data_dir=self.tmp.name, auth_mode="token", token="operator-token"))
-        self.assertEqual(unauth.get("/health").status_code, 200)
-        self.assertEqual(unauth.get("/api/v1/auth/info").status_code, 200)
-        self.assertEqual(unauth.get("/api/v1/entities").status_code, 401)
-        unauth.close()
-        self.client = TestClient(self.app)
+        self.client.cookies.clear()
+        self.assertEqual(self.client.get("/health").status_code, 200)
+        self.assertEqual(self.client.get("/api/v1/auth/info").status_code, 200)
+        self.assertEqual(self.client.get("/api/v1/entities").status_code, 401)
 
     def test_mutations_require_csrf_and_operator(self):
         missing = self.client.post("/api/v1/entities", json={"entity_id": "alice", "properties": {}})

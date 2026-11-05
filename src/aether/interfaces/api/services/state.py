@@ -220,7 +220,8 @@ def _atomic_json(path: Path, payload: Any) -> None:
     body = {"payload": payload, "sha256": hashlib.sha256(_canonical(payload)).hexdigest()}
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
     temporary.write_bytes(_canonical(body) + b"\n")
-    with temporary.open("rb") as stream:
+    with temporary.open("r+b") as stream:
+        stream.flush()
         os.fsync(stream.fileno())
     os.replace(temporary, path)
 

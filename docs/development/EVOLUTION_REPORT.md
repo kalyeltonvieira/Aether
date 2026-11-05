@@ -2,7 +2,7 @@
 
 ## Escopo e estado
 
-Esta branch mantém as fases A–D em commits separados e integra a fase E como camada opcional de produto. Não foi feito merge em `main` nem em branches históricas. A branch de trabalho é `evolution/aether-platform`; o envio ao remoto e a CI dessa revisão ainda estão pendentes até executar o push solicitado.
+Esta branch mantém as fases A–D em commits separados e integra a fase E como camada opcional de produto. Não foi feito merge em `main` nem em branches históricas. O primeiro commit E `193910045e3ba83e849923e32a62a26c3fc74281` já está em `origin/evolution/aether-platform`; uma correção de portabilidade para Windows está em validação.
 
 O Studio separa o núcleo AETHER, a API FastAPI e o cliente React/TypeScript/Vite. A UI usa REST e WebSocket; o servidor valida os padrões como dados estruturados, compõe `KnowledgeStore`, `KnowledgeReasoner`, `AdaptiveMemory` e `EventEngine` reais, e não expõe execução Python arbitrária. Operações nativas só são declaradas disponíveis quando a biblioteca é realmente encontrada/carregada; métricas não instrumentadas permanecem `null`. O frontend separa os módulos por rota, e o build atual não emite o alerta anterior de chunk maior que 500 kB.
 
@@ -45,8 +45,8 @@ Não foi medida energia. Throughput de janela e RSS high-water não são limites
 
 ## Pendências antes de declarar suporte completo
 
-1. **CI após push:** workflow está configurado para Python 3.10/3.12/3.13 em `ubuntu-latest`, `macos-latest` e `windows-latest`, frontend em Ubuntu/Windows e browser E2E em Ubuntu/Windows. Configuração da matriz não é evidência de execução: os relatórios GitHub precisam terminar e falhas reais precisam ser resolvidas antes de declarar Windows/Linux x86_64 aprovados.
-2. **OAuth real:** `auth/info` informa disponibilidade, `login-url` retorna `https://manus.im/app-auth` com os parâmetros oficiais, o cookie do state é `Secure; HttpOnly; SameSite=None` no Preview HTTPS, e o wire contract de `ExchangeToken`/`GetUserInfo` é testado por fixture HTTP. O browser chegou à tela real de login Manus para o redirect público correto, mas exige autenticação manual. O callback contra o provedor e a decisão/política final de redirect ainda não foram concluídos nesta sessão. O usuário precisa autorizar essa etapa pelo browser takeover. Usuários autenticados são `reader`; para escrita, um administrador precisa colocar `openId` em `AETHER_OPERATOR_OPEN_IDS` no servidor.
+1. **CI após push:** o workflow real concluiu. Ubuntu (Python 3.10/3.12/3.13, Studio e E2E) e macOS (Python 3.10/3.12/3.13) passaram; Studio frontend também passou no Windows. Python 3.10/3.12/3.13 no Windows falhou na primeira tentativa por `os.fsync` sobre handle aberto só para leitura e testes deixando handles SQLite abertos durante o cleanup; E2E Windows falhou ao iniciar a mesma gravação atômica. Esses pontos foram corrigidos e os testes locais voltaram a passar; a CI do follow-up ainda precisa concluir antes de declarar Windows aprovado.
+2. **OAuth real:** validado. `auth/info` informa disponibilidade, `login-url` retorna `https://manus.im/app-auth` com parâmetros oficiais, e o cookie OAuth state no Preview é `Secure; HttpOnly; SameSite=None`. Depois do login Manus real e do callback, o navegador retornou à página `/reasoning` com uma sessão verificada no papel `reader`; não houve mutação de dados. O protocolo de troca `ExchangeToken`/`GetUserInfo` também tem teste com fixture HTTP. Para escrita, um administrador precisa adicionar o openId do operador a `AETHER_OPERATOR_OPEN_IDS` no servidor; autenticar identidade não concede escrita automaticamente.
 3. **Preview vs produção:** servidor/API local de Preview está ativo, mas a aplicação não foi publicada publicamente. Não confundir branch GitHub ou Preview com publicação.
 
 ## Como executar
