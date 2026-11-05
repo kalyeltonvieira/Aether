@@ -6,7 +6,10 @@ provenance, type-aware scalar identity and query indexes; it does not infer.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import os
 import struct
+import time
+from pathlib import Path
 from typing import Mapping
 
 Scalar = str | int | float | bool | None
@@ -118,6 +121,16 @@ class FactEvidence:
     provenance: Provenance | None
     confidence: float | None
 
+    def __post_init__(self) -> None:
+        if self.provenance is not None and not isinstance(self.provenance, Provenance):
+            raise TypeError("evidence provenance must be Provenance or None")
+        if self.confidence is not None and (
+            isinstance(self.confidence, bool)
+            or not isinstance(self.confidence, (int, float))
+            or not 0.0 <= float(self.confidence) <= 1.0
+        ):
+            raise ValueError("evidence confidence must be in [0, 1] or None")
+
 
 @dataclass(frozen=True, eq=False)
 class Entity:
@@ -197,10 +210,27 @@ class Fact:
         ))
 
 
+@dataclass(frozen=True)
+class KnowledgeChange:
+    """One bounded audit record for a store mutation."""
+
+    sequence: int
+    version: int
+    structural_version: int
+    timestamp_ns: int
+    operation: str
+    entity_id: str | None = None
+    fact_id: int | None = None
+    before: Entity | Fact | None = None
+    after: Entity | Fact | None = None
+
+
 class KnowledgeStore:
     """Versioned entity/fact store with indexes for the three fact positions."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, history_limit: int = 10000) -> None:
+        if isinstance(history_limit, bool) or not isinstance(history_limit, int) or history_limit < 1:
+            raise ValueError("history_limit must be a positive integer")
         self._entities: dict[str, Entity] = {}
         self._facts: dict[int, Fact] = {}
         self._fact_keys: dict[FactIdentity, int] = {}
@@ -210,6 +240,35 @@ class KnowledgeStore:
         self._next_fact_id = 1
         self.version = 0
         self.structural_version = 0
+        self.history_limit = history_limit
+        self._history: list[KnowledgeChange] = []
+        self._history_sequence = 0
+        self._history_truncated_through = 0
+
+    def _record_change(
+        self,
+        operation: str,
+        *,
+        entity_id: str | None = None,
+        fact_id: int | None = None,
+        before: Entity | Fact | None = None,
+        after: Entity | Fact | None = None,
+    ) -> None:
+        self._history_sequence += 1
+        self._history.append(KnowledgeChange(
+            self._history_sequence,
+            self.version,
+            self.structural_version,
+            time.time_ns(),
+            operation,
+            entity_id,
+            fact_id,
+            before,
+            after,
+        ))
+        if len(self._history) > self.history_limit:
+            removed = self._history.pop(0)
+            self._history_truncated_through = removed.sequence
 
     @staticmethod
     def _entity_id(value: str) -> str:
@@ -264,15 +323,18 @@ class KnowledgeStore:
         self._entities[entity_id] = entity
         self.version += 1
         self.structural_version += 1
+        self._record_change("entity_added", entity_id=entity_id, after=entity)
         return entity
 
     def update_entity(self, entity_id: str, properties: Mapping[str, Scalar]) -> Entity:
         entity_id = self._entity_id(entity_id)
         if entity_id not in self._entities:
             raise KeyError(entity_id)
+        before = self._entities[entity_id]
         entity = Entity(entity_id, self._properties(properties))
         self._entities[entity_id] = entity
         self.version += 1
+        self._record_change("entity_updated", entity_id=entity_id, before=before, after=entity)
         return entity
 
     def get_entity(self, entity_id: str) -> Entity:
@@ -306,6 +368,7 @@ class KnowledgeStore:
         existing_id = self._fact_keys.get(key)
         if existing_id is not None:
             existing = self._facts[existing_id]
+            before = existing
             merged_properties = dict(existing.properties)
             changed = False
             for name, value in self._properties(properties):
@@ -331,6 +394,9 @@ class KnowledgeStore:
                 )
                 self._facts[existing_id] = existing
                 self.version += 1
+                self._record_change(
+                    "fact_metadata_updated", fact_id=existing_id, before=before, after=existing
+                )
             return existing, False
         fact = Fact(
             self._next_fact_id,
@@ -350,6 +416,7 @@ class KnowledgeStore:
         self._by_object.setdefault(scalar_identity(object), set()).add(fact.fact_id)
         self.version += 1
         self.structural_version += 1
+        self._record_change("fact_added", fact_id=fact.fact_id, after=fact)
         return fact, True
 
     def get_fact(self, fact_id: int) -> Fact:
@@ -369,6 +436,7 @@ class KnowledgeStore:
         self._by_object[scalar_identity(fact.object)].remove(fact.fact_id)
         self.version += 1
         self.structural_version += 1
+        self._record_change("fact_removed", fact_id=fact.fact_id, before=fact)
         return fact
 
     def query(
@@ -414,6 +482,34 @@ class KnowledgeStore:
             return (entity,) if name in properties else ()
         current = properties.get(name, ...)
         return (entity,) if current is not ... and scalar_equal(current, self._scalar(value)) else ()
+
+    def history_changes(self, *, offset: int = 0, limit: int = 100) -> tuple[KnowledgeChange, ...]:
+        if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+            raise ValueError("offset must be a non-negative integer")
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            raise ValueError("limit must be a positive integer")
+        return tuple(self._history[offset:offset + limit])
+
+    def history_stats(self) -> dict[str, int]:
+        return {
+            "retained_changes": len(self._history),
+            "history_limit": self.history_limit,
+            "latest_sequence": self._history_sequence,
+            "truncated_through": self._history_truncated_through,
+        }
+
+    def save(self, path: str | os.PathLike) -> Path:
+        """Persist this store as an atomic, checksum-protected snapshot."""
+        from aether.core.knowledge.persistence import save_store
+
+        return save_store(self, path)
+
+    @classmethod
+    def load(cls, path: str | os.PathLike) -> "KnowledgeStore":
+        """Load and verify a snapshot into a new store instance."""
+        from aether.core.knowledge.persistence import load_store
+
+        return load_store(path)
 
     def stats(self) -> dict[str, int]:
         return {

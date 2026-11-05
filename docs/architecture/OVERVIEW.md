@@ -4,9 +4,9 @@ AETHER é um protótipo experimental com dois domínios relacionados, porém dis
 
 ```text
 src/aether/              API instalável e implementação Python
-  core/knowledge/        entidades, fatos, proveniência e KnowledgeStore
+  core/knowledge/        entidades, fatos, evidências, snapshots e KnowledgeStore
   reasoning/             forward, backward, híbrido, incremental e controller
-  memory/                cache, políticas, padrões e memória adaptativa
+  memory/                cache, padrões, memória operacional SQLite e políticas
   graph/                 DynamicGraph, consultas, componentes e índice Rust
   temporal/              eventos e checkpoints
   native/                wrapper ctypes e fonte Rust FFI
@@ -18,6 +18,8 @@ datasets/manifests/      manifesto versionado; datasets grandes continuam extern
 results/                 evidências históricas preservadas por fase
 docs/                    arquitetura, fases, auditorias e desenvolvimento
 ```
+
+O conhecimento tem snapshots atômicos com checksum e histórico de alterações retido por limite configurável. A `AdaptiveMemory` é distinta: armazena bytes operacionais e usa SQLite no cold tier; frequência observada não cria fatos semânticos. Consulte [raciocínio](REASONING.md) e [memória/persistência](MEMORY.md) para os contratos e limitações.
 
 A árvore efetiva pode incluir shims top-level de compatibilidade durante a transição; eles apenas reexportam os módulos `aether.*` ou encaminham para o benchmark canônico e não contêm cópias de implementação.
 
