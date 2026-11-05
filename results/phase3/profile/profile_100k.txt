@@ -1,0 +1,34 @@
+Result: {'n': 100000, 'backend': 'compact', 'method': 'epoch', 'build_ms': 197.50948, 'update_ms': 6.851051999999974, 'query_ms': 1575.906279, 'total_ms': 1780.266811, 'process_cpu_ms': 1783.521988, 'positive_answers': 45, 'negative_answers': 45}
+         11005286 function calls (11005282 primitive calls) in 1.873 seconds
+
+   Ordered by: cumulative time
+   List reduced from 52 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.041    0.041    1.873    1.873 phase3_bench.py:106(run_worker)
+       90    1.058    0.012    1.576    0.018 aether_dynamic.py:71(reachable_epoch)
+  3115525    0.184    0.000    0.184    0.000 {method 'pop' of 'list' objects}
+  3120780    0.180    0.000    0.180    0.000 {method 'append' of 'list' objects}
+  3115525    0.154    0.000    0.154    0.000 aether_dynamic.py:46(neighbors)
+   201997    0.052    0.000    0.126    0.000 aether_dynamic.py:23(add_edge)
+   200995    0.044    0.000    0.068    0.000 phase3_bench.py:12(offset)
+   204997    0.040    0.000    0.058    0.000 aether_dynamic.py:15(_check)
+        1    0.013    0.013    0.045    0.045 phase3_bench.py:17(make_events)
+        1    0.000    0.000    0.026    0.026 aether_dynamic.py:49(memory_bytes)
+        3    0.006    0.002    0.026    0.009 {built-in method builtins.sum}
+   200996    0.024    0.000    0.024    0.000 {built-in method builtins.max}
+   100001    0.010    0.000    0.020    0.000 aether_dynamic.py:55(<genexpr>)
+   409997    0.018    0.000    0.018    0.000 {built-in method builtins.isinstance}
+        1    0.018    0.018    0.018    0.018 aether_dynamic.py:7(__init__)
+   201997    0.017    0.000    0.017    0.000 {method 'append' of 'array.array' objects}
+   100001    0.010    0.000    0.010    0.000 {built-in method sys.getsizeof}
+     3000    0.002    0.000    0.004    0.000 aether_dynamic.py:31(remove_edge)
+        1    0.000    0.000    0.001    0.001 random.py:359(sample)
+    10182    0.001    0.000    0.001    0.000 {built-in method time.perf_counter_ns}
+     3000    0.001    0.000    0.001    0.000 {method 'index' of 'array.array' objects}
+        3    0.000    0.000    0.000    0.000 phase3_bench.py:47(current_rss_bytes)
+     5090    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+     1120    0.000    0.000    0.000    0.000 random.py:242(_randbelow_with_getrandbits)
+     3000    0.000    0.000    0.000    0.000 {method 'pop' of 'array.array' objects}
+
+

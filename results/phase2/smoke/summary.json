@@ -1,0 +1,176 @@
+{
+  "title": "Aether phase 2 benchmark",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "cpu_count": 6,
+  "methodology": "Synthetic deterministic directed graphs; 30 seeds by default per scenario. Each algorithm executes in a separate child process for isolated peak RSS. Timing separates initial build, updates and queries. BFS is exact oracle; bitset_bfs is conventional frontier search using integer adjacency masks; incremental_closure maintains exact full transitive closure. Timings exclude process launch, data generation, serialization and output. No direct energy or FLOP measurement.",
+  "configurations": [
+    {
+      "label": "small_sparse_low_reuse",
+      "n": 60,
+      "initial_edges": 120,
+      "updates": 60,
+      "queries": 100
+    },
+    {
+      "label": "medium_sparse",
+      "n": 120,
+      "initial_edges": 360,
+      "updates": 240,
+      "queries": 500
+    },
+    {
+      "label": "medium_dense",
+      "n": 120,
+      "initial_edges": 1800,
+      "updates": 600,
+      "queries": 500
+    },
+    {
+      "label": "larger_sparse_query_heavy",
+      "n": 240,
+      "initial_edges": 720,
+      "updates": 480,
+      "queries": 1000
+    }
+  ],
+  "seeds_per_configuration": 1,
+  "runs": 12,
+  "summary": {
+    "small_sparse_low_reuse": {
+      "bfs": {
+        "build_ms": 0.00661,
+        "update_ms": 0.052653,
+        "query_ms": 0.888893,
+        "total_ms": 0.948156,
+        "peak_tracemalloc_bytes": 23600.0,
+        "process_peak_rss_kib": 15668.0,
+        "serialized_state_bytes": 616.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.097117,
+        "update_ms": 0.076967,
+        "query_ms": 3.523298,
+        "total_ms": 3.697382,
+        "peak_tracemalloc_bytes": 4100.0,
+        "process_peak_rss_kib": 15668.0,
+        "serialized_state_bytes": 479.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure": {
+        "build_ms": 7.658841,
+        "update_ms": 6.482346,
+        "query_ms": 0.120717,
+        "total_ms": 14.261904,
+        "peak_tracemalloc_bytes": 6584.0,
+        "process_peak_rss_kib": 15668.0,
+        "serialized_state_bytes": 1222.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "medium_sparse": {
+      "bfs": {
+        "build_ms": 0.028293,
+        "update_ms": 0.205959,
+        "query_ms": 7.034026,
+        "total_ms": 7.268278,
+        "peak_tracemalloc_bytes": 75432.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 1692.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.312443,
+        "update_ms": 0.376428,
+        "query_ms": 35.009648,
+        "total_ms": 35.698519,
+        "peak_tracemalloc_bytes": 10512.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 1740.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure": {
+        "build_ms": 51.712992,
+        "update_ms": 42.848906,
+        "query_ms": 0.615782,
+        "total_ms": 95.17768,
+        "peak_tracemalloc_bytes": 16576.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 4324.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "medium_dense": {
+      "bfs": {
+        "build_ms": 0.104759,
+        "update_ms": 0.69577,
+        "query_ms": 4.706324,
+        "total_ms": 5.506853,
+        "peak_tracemalloc_bytes": 210216.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 5296.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 1.544239,
+        "update_ms": 0.936745,
+        "query_ms": 16.252595,
+        "total_ms": 18.733579,
+        "peak_tracemalloc_bytes": 10840.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 2043.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure": {
+        "build_ms": 300.665543,
+        "update_ms": 103.591371,
+        "query_ms": 0.636835,
+        "total_ms": 404.893749,
+        "peak_tracemalloc_bytes": 16608.0,
+        "process_peak_rss_kib": 16564.0,
+        "serialized_state_bytes": 4342.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "larger_sparse_query_heavy": {
+      "bfs": {
+        "build_ms": 0.036376,
+        "update_ms": 0.589294,
+        "query_ms": 29.173171,
+        "total_ms": 29.798841,
+        "peak_tracemalloc_bytes": 144520.0,
+        "process_peak_rss_kib": 20020.0,
+        "serialized_state_bytes": 3374.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.615272,
+        "update_ms": 0.816193,
+        "query_ms": 126.283519,
+        "total_ms": 127.714984,
+        "peak_tracemalloc_bytes": 23996.0,
+        "process_peak_rss_kib": 20020.0,
+        "serialized_state_bytes": 6317.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure": {
+        "build_ms": 195.215442,
+        "update_ms": 166.434313,
+        "query_ms": 1.260571,
+        "total_ms": 362.910326,
+        "peak_tracemalloc_bytes": 40828.0,
+        "process_peak_rss_kib": 20020.0,
+        "serialized_state_bytes": 15801.0,
+        "accuracy_all_seeds": true
+      }
+    }
+  },
+  "limits": [
+    "Synthetic random workloads only.",
+    "RSS is ru_maxrss for isolated Linux process (KiB), includes interpreter and workload input.",
+    "Operation counters/FLOPs not included; timing is the direct operational measure.",
+    "No direct energy measurement.",
+    "No auto-controller: compare measured strategies first."
+  ]
+}

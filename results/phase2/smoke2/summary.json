@@ -1,0 +1,265 @@
+{
+  "title": "Aether phase 2 benchmark",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "cpu_count": 6,
+  "methodology": "Synthetic deterministic directed graphs; 30 seeds by default per scenario. Each algorithm executes in a separate child process for isolated peak RSS. Timing uses no tracing/profiler and separates initial build, updates and queries. BFS is exact oracle; bitset_bfs is conventional frontier search using integer adjacency masks; incremental_closure_dual maintains rows plus a transpose; aether_rows_only tests removal of the duplicate transpose. Timings exclude process launch, data generation, serialization and output. No direct energy or FLOP measurement.",
+  "configurations": [
+    {
+      "label": "small_sparse_low_reuse",
+      "n": 60,
+      "initial_edges": 120,
+      "updates": 60,
+      "queries": 100
+    },
+    {
+      "label": "medium_sparse",
+      "n": 120,
+      "initial_edges": 360,
+      "updates": 240,
+      "queries": 500
+    },
+    {
+      "label": "medium_dense",
+      "n": 120,
+      "initial_edges": 1800,
+      "updates": 600,
+      "queries": 500
+    },
+    {
+      "label": "larger_sparse_query_heavy",
+      "n": 240,
+      "initial_edges": 720,
+      "updates": 480,
+      "queries": 1000
+    },
+    {
+      "label": "static_many_queries",
+      "n": 120,
+      "initial_edges": 360,
+      "updates": 0,
+      "queries": 20000
+    }
+  ],
+  "seeds_per_configuration": 1,
+  "runs": 20,
+  "summary": {
+    "small_sparse_low_reuse": {
+      "bfs": {
+        "build_ms": 0.003485,
+        "update_ms": 0.01098,
+        "query_ms": 0.353884,
+        "total_ms": 0.368349,
+        "operation_proxy": 4255.0,
+        "process_peak_rss_kib": 15560.0,
+        "serialized_state_bytes": 616.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.010295,
+        "update_ms": 0.014072,
+        "query_ms": 0.430978,
+        "total_ms": 0.455345,
+        "operation_proxy": 2185.0,
+        "process_peak_rss_kib": 15560.0,
+        "serialized_state_bytes": 479.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 0.603274,
+        "update_ms": 0.492278,
+        "query_ms": 0.014262,
+        "total_ms": 1.109814,
+        "operation_proxy": 8266.0,
+        "process_peak_rss_kib": 15560.0,
+        "serialized_state_bytes": 1222.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 0.340296,
+        "update_ms": 0.200488,
+        "query_ms": 0.013758,
+        "total_ms": 0.554542,
+        "operation_proxy": 10800.0,
+        "process_peak_rss_kib": 15560.0,
+        "serialized_state_bytes": 616.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "medium_sparse": {
+      "bfs": {
+        "build_ms": 0.013049,
+        "update_ms": 0.03821,
+        "query_ms": 3.423048,
+        "total_ms": 3.474307,
+        "operation_proxy": 53292.0,
+        "process_peak_rss_kib": 16328.0,
+        "serialized_state_bytes": 1692.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.029714,
+        "update_ms": 0.047248,
+        "query_ms": 2.381589,
+        "total_ms": 2.458551,
+        "operation_proxy": 20086.0,
+        "process_peak_rss_kib": 16328.0,
+        "serialized_state_bytes": 1740.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 3.714146,
+        "update_ms": 3.400729,
+        "query_ms": 0.063637,
+        "total_ms": 7.178512,
+        "operation_proxy": 58194.0,
+        "process_peak_rss_kib": 16328.0,
+        "serialized_state_bytes": 4324.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 2.167103,
+        "update_ms": 1.71888,
+        "query_ms": 0.064341,
+        "total_ms": 3.950324,
+        "operation_proxy": 72000.0,
+        "process_peak_rss_kib": 16328.0,
+        "serialized_state_bytes": 2161.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "medium_dense": {
+      "bfs": {
+        "build_ms": 0.066752,
+        "update_ms": 0.104665,
+        "query_ms": 3.498033,
+        "total_ms": 3.66945,
+        "operation_proxy": 50961.0,
+        "process_peak_rss_kib": 16456.0,
+        "serialized_state_bytes": 5296.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.108003,
+        "update_ms": 0.103027,
+        "query_ms": 1.227478,
+        "total_ms": 1.438508,
+        "operation_proxy": 10653.0,
+        "process_peak_rss_kib": 16456.0,
+        "serialized_state_bytes": 2043.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 23.66721,
+        "update_ms": 8.121755,
+        "query_ms": 0.064053,
+        "total_ms": 31.853018,
+        "operation_proxy": 274361.0,
+        "process_peak_rss_kib": 16456.0,
+        "serialized_state_bytes": 4342.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 12.053107,
+        "update_ms": 4.193168,
+        "query_ms": 0.064361,
+        "total_ms": 16.310636,
+        "operation_proxy": 288000.0,
+        "process_peak_rss_kib": 16456.0,
+        "serialized_state_bytes": 2176.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "larger_sparse_query_heavy": {
+      "bfs": {
+        "build_ms": 0.027932,
+        "update_ms": 0.083839,
+        "query_ms": 14.837325,
+        "total_ms": 14.949096,
+        "operation_proxy": 226904.0,
+        "process_peak_rss_kib": 19912.0,
+        "serialized_state_bytes": 3374.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.063085,
+        "update_ms": 0.118498,
+        "query_ms": 10.805829,
+        "total_ms": 10.987412,
+        "operation_proxy": 86825.0,
+        "process_peak_rss_kib": 19912.0,
+        "serialized_state_bytes": 6317.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 15.815616,
+        "update_ms": 14.760848,
+        "query_ms": 0.137636,
+        "total_ms": 30.7141,
+        "operation_proxy": 229402.0,
+        "process_peak_rss_kib": 19912.0,
+        "serialized_state_bytes": 15801.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 8.908804,
+        "update_ms": 7.407548,
+        "query_ms": 0.138517,
+        "total_ms": 16.454869,
+        "operation_proxy": 288000.0,
+        "process_peak_rss_kib": 19912.0,
+        "serialized_state_bytes": 7908.0,
+        "accuracy_all_seeds": true
+      }
+    },
+    "static_many_queries": {
+      "bfs": {
+        "build_ms": 0.01366,
+        "update_ms": 0.0,
+        "query_ms": 130.9291,
+        "total_ms": 130.94276,
+        "operation_proxy": 2096785.0,
+        "process_peak_rss_kib": 20180.0,
+        "serialized_state_bytes": 1200.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.030287,
+        "update_ms": 0.0,
+        "query_ms": 106.289292,
+        "total_ms": 106.319579,
+        "operation_proxy": 882458.0,
+        "process_peak_rss_kib": 20436.0,
+        "serialized_state_bytes": 1510.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 3.661947,
+        "update_ms": 0.0,
+        "query_ms": 2.288067,
+        "total_ms": 5.950014,
+        "operation_proxy": 29201.0,
+        "process_peak_rss_kib": 20564.0,
+        "serialized_state_bytes": 4225.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 2.103586,
+        "update_ms": 0.0,
+        "query_ms": 2.327253,
+        "total_ms": 4.430839,
+        "operation_proxy": 43200.0,
+        "process_peak_rss_kib": 20820.0,
+        "serialized_state_bytes": 2119.0,
+        "accuracy_all_seeds": true
+      }
+    }
+  },
+  "limits": [
+    "Synthetic random workloads only.",
+    "RSS is ru_maxrss for isolated Linux process (KiB), includes interpreter and workload input.",
+    "Operation proxy counts differ by algorithm and are not FLOPs.",
+    "No direct energy measurement.",
+    "No auto-controller: compare measured strategies first."
+  ]
+}

@@ -1,0 +1,341 @@
+{
+  "title": "Aether phase 2 benchmark",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "cpu_count": 6,
+  "methodology": "Synthetic deterministic directed graphs; 30 seeds by default per scenario. Each strategy executes in a separate child process for isolated peak RSS. Timing uses no tracing/profiler and separates initial build, updates and queries. BFS is exact oracle; bitset_bfs is conventional frontier search using integer adjacency masks; incremental_closure_dual maintains rows plus a transpose; aether_rows_only tests removal of the duplicate transpose; adaptive applies a cost model calibrated on phase-2 pilot medians to choose between bitset_bfs and aether_rows_only. Timings exclude process launch, data generation, serialization and output. No direct energy or FLOP measurement.",
+  "configurations": [
+    {
+      "label": "small_sparse_low_reuse",
+      "n": 60,
+      "initial_edges": 120,
+      "updates": 60,
+      "queries": 100
+    },
+    {
+      "label": "medium_sparse",
+      "n": 120,
+      "initial_edges": 360,
+      "updates": 240,
+      "queries": 500
+    },
+    {
+      "label": "medium_dense",
+      "n": 120,
+      "initial_edges": 1800,
+      "updates": 600,
+      "queries": 500
+    },
+    {
+      "label": "larger_sparse_query_heavy",
+      "n": 240,
+      "initial_edges": 720,
+      "updates": 480,
+      "queries": 1000
+    },
+    {
+      "label": "static_many_queries",
+      "n": 120,
+      "initial_edges": 360,
+      "updates": 0,
+      "queries": 20000
+    }
+  ],
+  "seeds_per_configuration": 30,
+  "runs": 750,
+  "summary": {
+    "small_sparse_low_reuse": {
+      "bfs": {
+        "build_ms": 0.0038910000000000004,
+        "update_ms": 0.0112435,
+        "query_ms": 0.362127,
+        "total_ms": 0.3771645,
+        "operation_proxy": 4478.5,
+        "process_peak_rss_kib": 15936.0,
+        "serialized_state_bytes": 610.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.010505500000000001,
+        "update_ms": 0.0140435,
+        "query_ms": 0.3406065,
+        "total_ms": 0.3651805,
+        "operation_proxy": 2227.0,
+        "process_peak_rss_kib": 15936.0,
+        "serialized_state_bytes": 477.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 0.5341940000000001,
+        "update_ms": 0.48270650000000004,
+        "query_ms": 0.014828000000000001,
+        "total_ms": 1.0256845,
+        "operation_proxy": 7445.0,
+        "process_peak_rss_kib": 15936.0,
+        "serialized_state_bytes": 1201.5,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 0.3333205,
+        "update_ms": 0.2122355,
+        "query_ms": 0.014432500000000001,
+        "total_ms": 0.580143,
+        "operation_proxy": 10800.0,
+        "process_peak_rss_kib": 15936.0,
+        "serialized_state_bytes": 606.0,
+        "accuracy_all_seeds": true
+      },
+      "adaptive": {
+        "build_ms": 0.010401,
+        "update_ms": 0.0142355,
+        "query_ms": 0.35157150000000004,
+        "total_ms": 0.3791295,
+        "operation_proxy": 2227.0,
+        "process_peak_rss_kib": 15936.0,
+        "serialized_state_bytes": 477.0,
+        "accuracy_all_seeds": true,
+        "selected_strategies": {
+          "bitset_bfs": 30
+        },
+        "estimated_closure_ms": 0.607,
+        "estimated_bitset_ms": 0.3252
+      }
+    },
+    "medium_sparse": {
+      "bfs": {
+        "build_ms": 0.01372,
+        "update_ms": 0.043929,
+        "query_ms": 3.937157,
+        "total_ms": 3.993565,
+        "operation_proxy": 54048.0,
+        "process_peak_rss_kib": 17088.0,
+        "serialized_state_bytes": 1696.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.029734999999999998,
+        "update_ms": 0.0507385,
+        "query_ms": 2.8166285,
+        "total_ms": 2.897848,
+        "operation_proxy": 21062.0,
+        "process_peak_rss_kib": 17088.0,
+        "serialized_state_bytes": 1774.5,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 3.971441,
+        "update_ms": 3.57815,
+        "query_ms": 0.0679375,
+        "total_ms": 7.6654625,
+        "operation_proxy": 58403.5,
+        "process_peak_rss_kib": 17088.0,
+        "serialized_state_bytes": 4337.5,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 2.190954,
+        "update_ms": 1.7827545,
+        "query_ms": 0.069274,
+        "total_ms": 4.054733,
+        "operation_proxy": 72000.0,
+        "process_peak_rss_kib": 17088.0,
+        "serialized_state_bytes": 2176.0,
+        "accuracy_all_seeds": true
+      },
+      "adaptive": {
+        "build_ms": 0.0298705,
+        "update_ms": 0.050641000000000005,
+        "query_ms": 2.80483,
+        "total_ms": 2.883557,
+        "operation_proxy": 21062.0,
+        "process_peak_rss_kib": 17088.0,
+        "serialized_state_bytes": 1774.5,
+        "accuracy_all_seeds": true,
+        "selected_strategies": {
+          "bitset_bfs": 30
+        },
+        "estimated_closure_ms": 4.025,
+        "estimated_bitset_ms": 3.084
+      }
+    },
+    "medium_dense": {
+      "bfs": {
+        "build_ms": 0.07656099999999999,
+        "update_ms": 0.102642,
+        "query_ms": 3.4780854999999997,
+        "total_ms": 3.6766315,
+        "operation_proxy": 53916.0,
+        "process_peak_rss_kib": 17472.0,
+        "serialized_state_bytes": 5296.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.1091155,
+        "update_ms": 0.11199100000000001,
+        "query_ms": 1.4419089999999999,
+        "total_ms": 1.6736944999999999,
+        "operation_proxy": 10873.5,
+        "process_peak_rss_kib": 17472.0,
+        "serialized_state_bytes": 2045.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 25.198891500000002,
+        "update_ms": 8.685040999999998,
+        "query_ms": 0.0695045,
+        "total_ms": 34.0784345,
+        "operation_proxy": 274386.5,
+        "process_peak_rss_kib": 17472.0,
+        "serialized_state_bytes": 4342.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 13.0511985,
+        "update_ms": 4.515821000000001,
+        "query_ms": 0.071382,
+        "total_ms": 17.7667355,
+        "operation_proxy": 288000.0,
+        "process_peak_rss_kib": 17472.0,
+        "serialized_state_bytes": 2176.0,
+        "accuracy_all_seeds": true
+      },
+      "adaptive": {
+        "build_ms": 0.10817299999999999,
+        "update_ms": 0.111265,
+        "query_ms": 1.3828385,
+        "total_ms": 1.5957910000000002,
+        "operation_proxy": 10873.5,
+        "process_peak_rss_kib": 17472.0,
+        "serialized_state_bytes": 2045.0,
+        "accuracy_all_seeds": true,
+        "selected_strategies": {
+          "bitset_bfs": 30
+        },
+        "estimated_closure_ms": 15.905,
+        "estimated_bitset_ms": 3.336
+      }
+    },
+    "larger_sparse_query_heavy": {
+      "bfs": {
+        "build_ms": 0.025984,
+        "update_ms": 0.08679200000000001,
+        "query_ms": 14.999663,
+        "total_ms": 15.113822500000001,
+        "operation_proxy": 225544.5,
+        "process_peak_rss_kib": 20672.0,
+        "serialized_state_bytes": 3374.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.059830999999999995,
+        "update_ms": 0.1047595,
+        "query_ms": 11.030521,
+        "total_ms": 11.1908315,
+        "operation_proxy": 85330.0,
+        "process_peak_rss_kib": 20672.0,
+        "serialized_state_bytes": 6404.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 16.023546500000002,
+        "update_ms": 14.8657395,
+        "query_ms": 0.14113599999999998,
+        "total_ms": 30.9602525,
+        "operation_proxy": 231694.5,
+        "process_peak_rss_kib": 20672.0,
+        "serialized_state_bytes": 15816.0,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 8.550117,
+        "update_ms": 7.219013,
+        "query_ms": 0.139442,
+        "total_ms": 15.8940365,
+        "operation_proxy": 288000.0,
+        "process_peak_rss_kib": 20672.0,
+        "serialized_state_bytes": 7913.0,
+        "accuracy_all_seeds": true
+      },
+      "adaptive": {
+        "build_ms": 0.058984999999999996,
+        "update_ms": 0.10334,
+        "query_ms": 11.010192499999999,
+        "total_ms": 11.173102499999999,
+        "operation_proxy": 85330.0,
+        "process_peak_rss_kib": 20672.0,
+        "serialized_state_bytes": 6404.0,
+        "accuracy_all_seeds": true,
+        "selected_strategies": {
+          "bitset_bfs": 30
+        },
+        "estimated_closure_ms": 15.97,
+        "estimated_bitset_ms": 12.168
+      }
+    },
+    "static_many_queries": {
+      "bfs": {
+        "build_ms": 0.013735500000000001,
+        "update_ms": 0.0,
+        "query_ms": 133.41900650000002,
+        "total_ms": 133.43705849999998,
+        "operation_proxy": 2046458.0,
+        "process_peak_rss_kib": 23092.0,
+        "serialized_state_bytes": 1204.0,
+        "accuracy_all_seeds": true
+      },
+      "bitset_bfs": {
+        "build_ms": 0.0303065,
+        "update_ms": 0.0,
+        "query_ms": 114.63545500000001,
+        "total_ms": 114.66503449999999,
+        "operation_proxy": 896212.0,
+        "process_peak_rss_kib": 23092.0,
+        "serialized_state_bytes": 1547.0,
+        "accuracy_all_seeds": true
+      },
+      "incremental_closure_dual": {
+        "build_ms": 3.93098,
+        "update_ms": 0.0,
+        "query_ms": 2.4145684999999997,
+        "total_ms": 6.3640055,
+        "operation_proxy": 29195.0,
+        "process_peak_rss_kib": 23092.0,
+        "serialized_state_bytes": 4227.5,
+        "accuracy_all_seeds": true
+      },
+      "aether_rows_only": {
+        "build_ms": 2.144093,
+        "update_ms": 0.0,
+        "query_ms": 2.495358,
+        "total_ms": 4.686151,
+        "operation_proxy": 43200.0,
+        "process_peak_rss_kib": 23092.0,
+        "serialized_state_bytes": 2123.5,
+        "accuracy_all_seeds": true
+      },
+      "adaptive": {
+        "build_ms": 2.1951400000000003,
+        "update_ms": 0.0,
+        "query_ms": 2.524823,
+        "total_ms": 4.7108810000000005,
+        "operation_proxy": 43200.0,
+        "process_peak_rss_kib": 23092.0,
+        "serialized_state_bytes": 2123.5,
+        "accuracy_all_seeds": true,
+        "selected_strategies": {
+          "aether_rows_only": 30
+        },
+        "estimated_closure_ms": 4.976,
+        "estimated_bitset_ms": 120.0504
+      }
+    }
+  },
+  "controller_model": "closure_ns = 55*n*(initial_edges+updates)+130*queries; bitset_ns = 140*(initial_edges+updates)+6000*(n/120)*queries. Coefficients are approximate pilot-derived nanosecond costs for this interpreter/hardware and tested graph family, not portable constants. The lower predicted-cost strategy is selected; compare actual measured totals to predictions.",
+  "limits": [
+    "Synthetic random workloads only.",
+    "RSS is ru_maxrss for isolated Linux process (KiB), includes interpreter and workload input.",
+    "Operation proxy counts differ by algorithm and are not FLOPs.",
+    "No direct energy measurement.",
+    "Controller coefficients require recalibration on new hardware or workload families."
+  ]
+}

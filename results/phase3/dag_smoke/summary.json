@@ -1,0 +1,264 @@
+{
+  "title": "Aether phase 3 scale and dynamic benchmark",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "cpu_count": 6,
+  "seeds_per_scale": 1,
+  "runs": 15,
+  "workload": "Forward-only DAG (chain plus deterministic forward shortcuts); wide random queries include both reachable (s<t) and unreachable (s>t) pairs. First update burst removes chain bridges and shortcuts, then inserts new edges; local queries target inserted edges; second burst replaces these edges with different shortcuts, followed by wide queries. Removals change reachable answers. BFS is recomputed over current adjacency, so no stale closure facts survive deletions.",
+  "methods": "set BFS; epoch-stamped uint32-array BFS; adaptive BFS controller that measures both strategies for initial calibration and periodically probes both, updates exponential moving-average costs, and switches route. Graph storage: Python sets vs per-node array(I) compact adjacency. Each process generates its own deterministic workload, so graph payload is not transferred between parent/child.",
+  "memory": "RSS sampled from /proc/self/status before/after graph build and after workload; process peak RSS from resource.ru_maxrss. Retained adjacency Python heap estimate counts container and neighbor object sizes. Values include interpreter/runtime; resident memory deltas are more informative than peak RSS for the graph structure.",
+  "energy": "not measured; no joules inferred. FLOPs not applicable to this integer graph workload and not fabricated.",
+  "limitations": [
+    "Synthetic workload, five seeds default; not an externally representative graph dataset.",
+    "100k-node cases use sparse degree-two base graph and 90 queries, not dense or adversarial worst case.",
+    "Deletion correctness comes from search over current adjacency rather than a fully dynamic transitive-closure algorithm.",
+    "Online controller adapts query traversal only; storage backend is fixed per run.",
+    "Compact arrays support unsigned 32-bit node identifiers."
+  ],
+  "summary": {
+    "1000": {
+      "sets+set": {
+        "build_ms": 0.473367,
+        "update_ms": 0.014724,
+        "query_ms": 9.728203,
+        "total_ms": 10.216294000000001,
+        "process_cpu_ms": 10.334689,
+        "rss_delta_after_build_bytes": 253952.0,
+        "rss_after_build_bytes": 15949824.0,
+        "process_peak_rss_kib": 15556.0,
+        "retained_graph_heap_bytes_estimate": 280492.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 0.542702,
+        "update_ms": 0.017577000000000006,
+        "query_ms": 10.183446000000002,
+        "total_ms": 10.743725000000001,
+        "process_cpu_ms": 10.877829,
+        "rss_delta_after_build_bytes": 253952.0,
+        "rss_after_build_bytes": 15982592.0,
+        "process_peak_rss_kib": 15616.0,
+        "retained_graph_heap_bytes_estimate": 280492.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 0.449191,
+        "update_ms": 0.018257,
+        "query_ms": 9.985223999999999,
+        "total_ms": 10.452671999999998,
+        "process_cpu_ms": 10.544702,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15736832.0,
+        "process_peak_rss_kib": 15376.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 0.550103,
+        "update_ms": 0.01789499999999999,
+        "query_ms": 9.561577000000007,
+        "total_ms": 10.129575000000006,
+        "process_cpu_ms": 10.251544,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15785984.0,
+        "process_peak_rss_kib": 15444.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 0.539086,
+        "update_ms": 0.01954000000000001,
+        "query_ms": 10.223423000000007,
+        "total_ms": 10.782049000000008,
+        "process_cpu_ms": 10.916987,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15790080.0,
+        "process_peak_rss_kib": 15428.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "accuracy_all_seeds": true,
+        "median_route_counts": {
+          "set": 31,
+          "epoch": 269
+        },
+        "median_phase_routes": {
+          "wide": {
+            "set": 3,
+            "epoch": 97
+          },
+          "local_after_change": {
+            "set": 3,
+            "epoch": 97
+          },
+          "wide_after_churn": {
+            "set": 25,
+            "epoch": 75
+          }
+        },
+        "median_probes": 15
+      }
+    },
+    "10000": {
+      "sets+set": {
+        "build_ms": 4.85813,
+        "update_ms": 0.15390700000000007,
+        "query_ms": 48.565802999999974,
+        "total_ms": 53.57783999999997,
+        "process_cpu_ms": 53.830973,
+        "rss_delta_after_build_bytes": 2596864.0,
+        "rss_after_build_bytes": 18722816.0,
+        "process_peak_rss_kib": 19048.0,
+        "retained_graph_heap_bytes_estimate": 2802292.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 4.783747,
+        "update_ms": 0.12379099999999948,
+        "query_ms": 50.427719999999965,
+        "total_ms": 55.33525799999997,
+        "process_cpu_ms": 55.555665,
+        "rss_delta_after_build_bytes": 2596864.0,
+        "rss_after_build_bytes": 18710528.0,
+        "process_peak_rss_kib": 18244.0,
+        "retained_graph_heap_bytes_estimate": 2802292.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 4.623784,
+        "update_ms": 0.1263879999999996,
+        "query_ms": 49.84863599999997,
+        "total_ms": 54.59880799999997,
+        "process_cpu_ms": 54.820148,
+        "rss_delta_after_build_bytes": 966656.0,
+        "rss_after_build_bytes": 17010688.0,
+        "process_peak_rss_kib": 17348.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 4.494318,
+        "update_ms": 0.1047939999999995,
+        "query_ms": 48.66188400000001,
+        "total_ms": 53.260996000000006,
+        "process_cpu_ms": 53.43421,
+        "rss_delta_after_build_bytes": 966656.0,
+        "rss_after_build_bytes": 17072128.0,
+        "process_peak_rss_kib": 16724.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 4.527828,
+        "update_ms": 0.10863999999999926,
+        "query_ms": 50.06931299999995,
+        "total_ms": 54.70578099999995,
+        "process_cpu_ms": 54.910573,
+        "rss_delta_after_build_bytes": 966656.0,
+        "rss_after_build_bytes": 17063936.0,
+        "process_peak_rss_kib": 17340.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "accuracy_all_seeds": true,
+        "median_route_counts": {
+          "set": 7,
+          "epoch": 173
+        },
+        "median_phase_routes": {
+          "wide": {
+            "set": 2,
+            "epoch": 58
+          },
+          "local_after_change": {
+            "set": 3,
+            "epoch": 57
+          },
+          "wide_after_churn": {
+            "set": 2,
+            "epoch": 58
+          }
+        },
+        "median_probes": 13
+      }
+    },
+    "100000": {
+      "sets+set": {
+        "build_ms": 47.010194,
+        "update_ms": 1.285919000000016,
+        "query_ms": 290.912098,
+        "total_ms": 339.208211,
+        "process_cpu_ms": 340.546438,
+        "rss_delta_after_build_bytes": 26644480.0,
+        "rss_after_build_bytes": 46284800.0,
+        "process_peak_rss_kib": 52428.0,
+        "retained_graph_heap_bytes_estimate": 27972900.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 46.180671,
+        "update_ms": 1.2658360000000115,
+        "query_ms": 300.99157400000007,
+        "total_ms": 348.43808100000007,
+        "process_cpu_ms": 349.680174,
+        "rss_delta_after_build_bytes": 26644480.0,
+        "rss_after_build_bytes": 46272512.0,
+        "process_peak_rss_kib": 45560.0,
+        "retained_graph_heap_bytes_estimate": 27972900.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 49.459775,
+        "update_ms": 1.5904110000000224,
+        "query_ms": 323.1162620000002,
+        "total_ms": 374.1664480000002,
+        "process_cpu_ms": 375.389982,
+        "rss_delta_after_build_bytes": 10280960.0,
+        "rss_after_build_bytes": 29880320.0,
+        "process_peak_rss_kib": 36216.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 46.191414,
+        "update_ms": 1.188127000000047,
+        "query_ms": 293.2779030000002,
+        "total_ms": 340.6574440000003,
+        "process_cpu_ms": 341.883573,
+        "rss_delta_after_build_bytes": 10280960.0,
+        "rss_after_build_bytes": 29896704.0,
+        "process_peak_rss_kib": 29576.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 45.142082,
+        "update_ms": 1.232974999999998,
+        "query_ms": 293.57288499999987,
+        "total_ms": 339.9479419999999,
+        "process_cpu_ms": 341.407244,
+        "rss_delta_after_build_bytes": 10280960.0,
+        "rss_after_build_bytes": 29999104.0,
+        "process_peak_rss_kib": 36188.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "accuracy_all_seeds": true,
+        "median_route_counts": {
+          "set": 6,
+          "epoch": 84
+        },
+        "median_phase_routes": {
+          "wide": {
+            "set": 2,
+            "epoch": 28
+          },
+          "local_after_change": {
+            "set": 2,
+            "epoch": 28
+          },
+          "wide_after_churn": {
+            "set": 2,
+            "epoch": 28
+          }
+        },
+        "median_probes": 12
+      }
+    }
+  }
+}

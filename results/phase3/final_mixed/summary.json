@@ -1,0 +1,345 @@
+{
+  "title": "Aether phase 3 scale and dynamic benchmark",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "linux",
+  "cpu_count": 6,
+  "seeds_per_scale": 5,
+  "runs": 75,
+  "workload": "Forward-only DAG (chain plus deterministic forward shortcuts); wide random queries include both reachable (s<t) and unreachable (s>t) pairs. First update burst removes chain bridges and shortcuts, then inserts new edges; local queries target inserted edges; second burst replaces these edges with different shortcuts, followed by wide queries. Removals change reachable answers. BFS is recomputed over current adjacency, so no stale closure facts survive deletions.",
+  "methods": "set BFS; epoch-stamped uint32-array BFS; adaptive BFS controller executes each real query once, alternates strategies during initial calibration, records observed exponential-moving-average costs, recalibrates on graph changes and only switches on a measured 20% advantage. Graph storage: Python sets vs per-node array(I) compact adjacency. Each process generates its own deterministic workload.",
+  "memory": "RSS sampled from /proc/self/status before/after graph build and after workload; process peak RSS from resource.ru_maxrss. Retained adjacency Python heap estimate counts container and neighbor object sizes. Values include interpreter/runtime; resident memory deltas are more informative than peak RSS for the graph structure.",
+  "energy": "not measured; no joules inferred. FLOPs not applicable to this integer graph workload and not fabricated.",
+  "limitations": [
+    "Synthetic workload, five seeds default; not an externally representative graph dataset.",
+    "100k-node cases use sparse degree-two base graph and 90 queries, not dense or adversarial worst case.",
+    "Deletion correctness comes from search over current adjacency rather than a fully dynamic transitive-closure algorithm.",
+    "Online controller adapts query traversal only; storage backend is fixed per run.",
+    "Compact arrays support unsigned 32-bit node identifiers."
+  ],
+  "summary": {
+    "1000": {
+      "sets+set": {
+        "build_ms": 0.478284,
+        "update_ms": 0.019423,
+        "query_ms": 13.56055900000001,
+        "total_ms": 14.03957900000001,
+        "process_cpu_ms": 14.175097,
+        "rss_delta_after_build_bytes": 258048.0,
+        "rss_after_build_bytes": 16072704.0,
+        "process_peak_rss_kib": 15744.0,
+        "retained_graph_heap_bytes_estimate": 280492.0,
+        "positive_answers": 152.0,
+        "negative_answers": 148.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 0.523604,
+        "update_ms": 0.018691,
+        "query_ms": 14.544533999999993,
+        "total_ms": 15.048469999999993,
+        "process_cpu_ms": 15.163312,
+        "rss_delta_after_build_bytes": 258048.0,
+        "rss_after_build_bytes": 16007168.0,
+        "process_peak_rss_kib": 15536.0,
+        "retained_graph_heap_bytes_estimate": 280492.0,
+        "positive_answers": 152.0,
+        "negative_answers": 148.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 0.498084,
+        "update_ms": 0.03227699999999999,
+        "query_ms": 18.494079999999997,
+        "total_ms": 18.971712999999998,
+        "process_cpu_ms": 19.133926,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15851520.0,
+        "process_peak_rss_kib": 15408.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "positive_answers": 152.0,
+        "negative_answers": 148.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 0.502391,
+        "update_ms": 0.024606,
+        "query_ms": 15.555978000000012,
+        "total_ms": 16.10394600000001,
+        "process_cpu_ms": 16.272207,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15855616.0,
+        "process_peak_rss_kib": 15416.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "positive_answers": 152.0,
+        "negative_answers": 148.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 0.797327,
+        "update_ms": 0.031597,
+        "query_ms": 18.53959100000001,
+        "total_ms": 19.53808400000001,
+        "process_cpu_ms": 19.72594,
+        "rss_delta_after_build_bytes": 98304.0,
+        "rss_after_build_bytes": 15872000.0,
+        "process_peak_rss_kib": 15508.0,
+        "retained_graph_heap_bytes_estimate": 104840.0,
+        "positive_answers": 152.0,
+        "negative_answers": 148.0,
+        "accuracy_all_seeds": true,
+        "route_counts_all_seeds": {
+          "set": 943,
+          "epoch": 557
+        },
+        "phase_routes_all_seeds": {
+          "wide": {
+            "set": 360,
+            "epoch": 135
+          },
+          "bridge_before_removal": {
+            "set": 2,
+            "epoch": 3
+          },
+          "bridge_after_removal": {
+            "epoch": 2,
+            "set": 3
+          },
+          "local_after_change": {
+            "set": 200,
+            "epoch": 295
+          },
+          "wide_after_churn": {
+            "epoch": 118,
+            "set": 372
+          },
+          "bridge_after_churn": {
+            "set": 3,
+            "epoch": 2
+          },
+          "replacement_after_churn": {
+            "set": 3,
+            "epoch": 2
+          }
+        },
+        "median_probes": 15,
+        "median_route_switches": 4
+      }
+    },
+    "10000": {
+      "sets+set": {
+        "build_ms": 5.669687,
+        "update_ms": 0.14153099999999977,
+        "query_ms": 77.08576099999998,
+        "total_ms": 83.408683,
+        "process_cpu_ms": 83.823198,
+        "rss_delta_after_build_bytes": 2596864.0,
+        "rss_after_build_bytes": 18841600.0,
+        "process_peak_rss_kib": 19096.0,
+        "retained_graph_heap_bytes_estimate": 2802292.0,
+        "positive_answers": 90.0,
+        "negative_answers": 90.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 4.743345,
+        "update_ms": 0.13798700000000022,
+        "query_ms": 79.62420099999999,
+        "total_ms": 84.51530299999999,
+        "process_cpu_ms": 84.902418,
+        "rss_delta_after_build_bytes": 2596864.0,
+        "rss_after_build_bytes": 18776064.0,
+        "process_peak_rss_kib": 18360.0,
+        "retained_graph_heap_bytes_estimate": 2802292.0,
+        "positive_answers": 90.0,
+        "negative_answers": 90.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 4.692038,
+        "update_ms": 0.13599300000000034,
+        "query_ms": 77.09424999999997,
+        "total_ms": 81.83579899999998,
+        "process_cpu_ms": 82.022422,
+        "rss_delta_after_build_bytes": 962560.0,
+        "rss_after_build_bytes": 17125376.0,
+        "process_peak_rss_kib": 17452.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "positive_answers": 90.0,
+        "negative_answers": 90.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 4.860823,
+        "update_ms": 0.15234000000000056,
+        "query_ms": 80.955617,
+        "total_ms": 87.21625700000001,
+        "process_cpu_ms": 87.590348,
+        "rss_delta_after_build_bytes": 962560.0,
+        "rss_after_build_bytes": 17141760.0,
+        "process_peak_rss_kib": 16684.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "positive_answers": 90.0,
+        "negative_answers": 90.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 4.786491,
+        "update_ms": 0.15067699999999992,
+        "query_ms": 80.846424,
+        "total_ms": 85.786611,
+        "process_cpu_ms": 86.157961,
+        "rss_delta_after_build_bytes": 962560.0,
+        "rss_after_build_bytes": 17149952.0,
+        "process_peak_rss_kib": 17476.0,
+        "retained_graph_heap_bytes_estimate": 1045160.0,
+        "positive_answers": 90.0,
+        "negative_answers": 90.0,
+        "accuracy_all_seeds": true,
+        "route_counts_all_seeds": {
+          "set": 582,
+          "epoch": 318
+        },
+        "phase_routes_all_seeds": {
+          "wide": {
+            "set": 114,
+            "epoch": 181
+          },
+          "bridge_before_removal": {
+            "epoch": 3,
+            "set": 2
+          },
+          "bridge_after_removal": {
+            "set": 3,
+            "epoch": 2
+          },
+          "local_after_change": {
+            "epoch": 75,
+            "set": 220
+          },
+          "wide_after_churn": {
+            "set": 235,
+            "epoch": 55
+          },
+          "bridge_after_churn": {
+            "set": 4,
+            "epoch": 1
+          },
+          "replacement_after_churn": {
+            "set": 4,
+            "epoch": 1
+          }
+        },
+        "median_probes": 13,
+        "median_route_switches": 5
+      }
+    },
+    "100000": {
+      "sets+set": {
+        "build_ms": 47.269282,
+        "update_ms": 1.9956719999999968,
+        "query_ms": 427.2659039999998,
+        "total_ms": 476.2954669999998,
+        "process_cpu_ms": 477.671819,
+        "rss_delta_after_build_bytes": 26714112.0,
+        "rss_after_build_bytes": 46313472.0,
+        "process_peak_rss_kib": 52452.0,
+        "retained_graph_heap_bytes_estimate": 27972900.0,
+        "positive_answers": 45.0,
+        "negative_answers": 45.0,
+        "accuracy_all_seeds": true
+      },
+      "sets+epoch": {
+        "build_ms": 47.61163,
+        "update_ms": 1.9734369999999932,
+        "query_ms": 431.889704,
+        "total_ms": 481.778757,
+        "process_cpu_ms": 483.587366,
+        "rss_delta_after_build_bytes": 26714112.0,
+        "rss_after_build_bytes": 46362624.0,
+        "process_peak_rss_kib": 45580.0,
+        "retained_graph_heap_bytes_estimate": 27972900.0,
+        "positive_answers": 45.0,
+        "negative_answers": 45.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+set": {
+        "build_ms": 46.187454,
+        "update_ms": 1.8584660000000075,
+        "query_ms": 484.8902979999999,
+        "total_ms": 531.9650169999999,
+        "process_cpu_ms": 533.600411,
+        "rss_delta_after_build_bytes": 10338304.0,
+        "rss_after_build_bytes": 29966336.0,
+        "process_peak_rss_kib": 36488.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "positive_answers": 45.0,
+        "negative_answers": 45.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+epoch": {
+        "build_ms": 58.047178,
+        "update_ms": 2.0622759999999913,
+        "query_ms": 404.36716499999994,
+        "total_ms": 474.31738199999995,
+        "process_cpu_ms": 475.913577,
+        "rss_delta_after_build_bytes": 10338304.0,
+        "rss_after_build_bytes": 29925376.0,
+        "process_peak_rss_kib": 29536.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "positive_answers": 45.0,
+        "negative_answers": 45.0,
+        "accuracy_all_seeds": true
+      },
+      "compact+adaptive": {
+        "build_ms": 47.801187,
+        "update_ms": 1.859044000000004,
+        "query_ms": 449.08435499999985,
+        "total_ms": 500.39725699999985,
+        "process_cpu_ms": 502.319271,
+        "rss_delta_after_build_bytes": 10338304.0,
+        "rss_after_build_bytes": 29937664.0,
+        "process_peak_rss_kib": 36416.0,
+        "retained_graph_heap_bytes_estimate": 10400968.0,
+        "positive_answers": 45.0,
+        "negative_answers": 45.0,
+        "accuracy_all_seeds": true,
+        "route_counts_all_seeds": {
+          "set": 166,
+          "epoch": 284
+        },
+        "phase_routes_all_seeds": {
+          "wide": {
+            "set": 52,
+            "epoch": 93
+          },
+          "bridge_before_removal": {
+            "epoch": 4,
+            "set": 1
+          },
+          "bridge_after_removal": {
+            "set": 4,
+            "epoch": 1
+          },
+          "local_after_change": {
+            "epoch": 98,
+            "set": 47
+          },
+          "wide_after_churn": {
+            "set": 56,
+            "epoch": 84
+          },
+          "bridge_after_churn": {
+            "epoch": 2,
+            "set": 3
+          },
+          "replacement_after_churn": {
+            "epoch": 2,
+            "set": 3
+          }
+        },
+        "median_probes": 12,
+        "median_route_switches": 3
+      }
+    }
+  }
+}

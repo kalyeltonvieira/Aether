@@ -1,0 +1,19 @@
+# Python bytecode and test caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Rust build outputs and benchmark executables
+/target/
+results/phase3/**/rust_*kernel
+
+# Editor / OS files
+.DS_Store
+.idea/
+.vscode/
