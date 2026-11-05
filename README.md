@@ -1,59 +1,153 @@
-# AETHER — grafos dinâmicos e raciocínio relacional experimental
+# AETHER
 
-AETHER reúne protótipos de grafos mutáveis e raciocínio simbólico sobre fatos relacionais estruturados. Não é um sistema de inteligência geral nem afirma compreender linguagem natural. Os resultados são experimentais e cada relatório registra workloads, limitações e condições de reprodução.
+**AETHER é um protótipo experimental de grafos dinâmicos e raciocínio simbólico sobre fatos relacionais estruturados.** O repositório reúne implementações em Python, um backend opcional em Rust e harnesses reproduzíveis para avaliar algoritmos e políticas de raciocínio.
 
-## Estado e arquitetura
+O projeto não é um sistema de inteligência geral, não afirma compreender linguagem natural e não deve ser tratado como mecanismo de decisão de produção. Resultados de desempenho são específicos aos workloads e ambientes documentados; cada relatório registra metodologia, limitações e proveniência.
 
-A branch `main` contém o histórico da Phase 7new; os relatórios de fases são registros históricos separados, não alegações atuais. Consulte [`docs/phases/PHASE7NEW_REPORT.md`](docs/phases/PHASE7NEW_REPORT.md) para o estado histórico anterior e [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) para a arquitetura organizada.
+## O que o projeto explora
 
-O código instalável está em `src/aether/`: `core/` guarda conhecimento estruturado; `reasoning/` agrupa inferência forward/backward/híbrida e dependências; `graph/` contém grafos, componentes e indexação; `memory/` abriga cache e políticas; `temporal/` contém eventos/checkpoints; `native/` mantém bindings Python e fonte Rust; `adapters/` integra dados SNAP. Harnesses ficam em `benchmarks/`, testes em `tests/`, manifestos em `datasets/manifests/`, resultados históricos em `results/` e documentação em `docs/`. O [mapeamento de módulos](docs/architecture/MODULES.md) e o [grafo de dependências](docs/architecture/DEPENDENCIES.md) detalham as fronteiras.
+- **Grafo mutável:** criação, remoção e consulta de arestas, com componentes, índices e variantes para workloads diferentes.
+- **Conhecimento relacional:** entidades e fatos estruturados com proveniência, índices de consulta e identidade tipada dos valores escalares (`bool`, `int`, `float`, `str` e `None`).
+- **Inferência simbólica:** encadeamento forward, backward e híbrido, regras versionadas, limites explícitos de execução e consultas com variáveis livres.
+- **Explicabilidade e atualização:** conclusões podem conservar provas alternativas e referências aos fatos que as sustentam. Remoções ou mudanças de regras podem exigir recomputação completa; o sistema marca essa necessidade em vez de apresentar conclusões potencialmente obsoletas como completas.
+- **Consistência declarativa:** contradições são avaliadas por regras de incompatibilidade explicitamente declaradas; fatos de fontes distintas não são apagados automaticamente.
+- **Backend nativo opcional:** bindings `ctypes` para código Rust, compilado para o sistema e a arquitetura em uso quando solicitado. A implementação Python não depende da compilação Rust para ser importada.
+- **Avaliação experimental:** benchmarks por fase, oráculos independentes, fixtures e resultados históricos para estudar comportamento e desempenho.
 
-## Instalação
+A [visão de arquitetura](docs/architecture/OVERVIEW.md), o [mapa de módulos](docs/architecture/MODULES.md) e o [grafo de dependências](docs/architecture/DEPENDENCIES.md) explicam as responsabilidades e fronteiras entre componentes.
 
-Requer Python 3.10 ou superior. O backend Rust é opcional para a instalação Python e exige Rust 1.99.1 e linker compatível para compilar a biblioteca nativa local. Instalação editável:
+## Estado do projeto
+
+A organização do código instalável está em `src/aether/`; os benchmarks, testes, dados/manifestos, resultados e documentação ficam em diretórios próprios. A Phase 8 acrescenta identidade tipada, provas alternativas, consultas abertas, lifecycle de regras e índice Rust versionado. Seu [relatório técnico](docs/phases/PHASE8_REPORT.md) registra os detalhes e as ressalvas experimentais.
+
+A matriz de CI cobre **Linux, macOS e Windows** com Python **3.10, 3.12 e 3.13**. A validação indicada para compatibilidade é sempre a execução real de CI associada ao commit relevante. A matriz não inclui Linux ARM64; não se deve inferir suporte validado para uma plataforma que não foi testada.
+
+## Arquitetura do repositório
+
+| Caminho | Responsabilidade |
+|---|---|
+| `src/aether/core/knowledge/` | Entidades, fatos, proveniência e armazenamento de conhecimento |
+| `src/aether/reasoning/` | Inferência, regras, explicações, consistência e controladores |
+| `src/aether/graph/` | Grafos dinâmicos, componentes, consultas e índices |
+| `src/aether/memory/` | Cache, padrões e políticas de memória |
+| `src/aether/temporal/` | Eventos, checkpoints e reconstrução temporal |
+| `src/aether/native/` | Bindings nativos e fonte Rust da FFI |
+| `src/aether/adapters/` | Adaptação de dados externos, incluindo proveniência SNAP |
+| `benchmarks/` | Harnesses de benchmark organizados por fase |
+| `tests/` | Testes unitários, integração, regressão, concorrência e portabilidade |
+| `datasets/manifests/` | Manifestos versionados para localizar datasets externos |
+| `results/` | Saídas históricas de experimentos; não são regeneradas pela CI |
+| `docs/` | Guias, arquitetura, relatórios de fases e auditorias |
+
+Shims top-level preservam temporariamente imports e comandos legados. Eles encaminham para a implementação canônica em `aether.*`; não são uma segunda cópia do domínio.
+
+## Requisitos e instalação
+
+O núcleo Python requer **Python 3.10 ou superior**. A instalação normal não compila nem exige Rust. O backend nativo opcional exige **Rust 1.99.1** (definido por `rust-toolchain.toml`) e um linker/runtime C compatível com o sistema operacional.
+
+### Instalação editável para desenvolvimento
 
 ```bash
 python -m venv .venv
+# Linux/macOS:
+source .venv/bin/activate
+# Windows PowerShell:
+# .\.venv\Scripts\Activate.ps1
+
 python -m pip install --upgrade pip
 python -m pip install -e .
 python -c "import aether; print(aether.__version__)"
 ```
 
-Veja o [setup geral](docs/development/SETUP.md), as instruções específicas para [Windows](docs/development/SETUP_WINDOWS.md) e [Linux](docs/development/SETUP_LINUX.md). O wrapper seleciona `.dll`, `.so` ou `.dylib` no host atual e valida a ABI; não reutilize binários nativos de outro sistema ou arquitetura. Para compilar explicitamente:
+Extras opcionais:
+
+```bash
+python -m pip install ".[plots]"       # matplotlib e numpy para gráficos
+python -m pip install ".[networkx]"     # comparador externo opcional
+```
+
+Consulte o [setup geral](docs/development/SETUP.md), os guias para [Windows](docs/development/SETUP_WINDOWS.md) e [Linux](docs/development/SETUP_LINUX.md), e o guia de [instalação e execução](docs/development/PHASE5_INSTALL.md). Para compilar o backend nativo explicitamente:
 
 ```bash
 python -c "from aether.native.bindings import compile_native; print(compile_native())"
 ```
 
-A API moderna pode ser importada de `aether`; os imports flat antigos como `aether_knowledge` permanecem temporariamente como aliases. Exemplo:
+O wrapper seleciona `.dll`, `.so` ou `.dylib` conforme o host e verifica ABI/plataforma. **Não reutilize uma biblioteca nativa compilada para outro sistema operacional ou arquitetura.**
+
+## Exemplo rápido
+
+O exemplo abaixo cria um grafo e uma base de fatos, aplica uma regra e consulta as conclusões derivadas:
 
 ```python
 from aether import DynamicGraph, KnowledgeStore
+from aether.reasoning.inference import InferenceEngine, Pattern, Rule
 
-store = KnowledgeStore()
+# Grafo dinâmico
 graph = DynamicGraph(3)
 graph.add_edge(0, 1)
+assert graph.has_edge(0, 1)
+
+# Conhecimento relacional e regra: quem conhece alguém está conectado a essa pessoa.
+store = KnowledgeStore()
+store.add_entity("alice")
+store.add_fact("alice", "knows", "bob")
+
+rule = Rule(
+    rule_id="knows-implies-connected",
+    antecedents=(Pattern("?person", "knows", "?other"),),
+    consequent=Pattern("?person", "connected_to", "?other"),
+)
+result = InferenceEngine(store, rules=[rule]).infer()
+assert any(fact.key == ("alice", "connected_to", "bob") for fact in result.conclusions)
 ```
 
-## Testes
+`KnowledgeStore` armazena fatos; `InferenceEngine` deriva conclusões de regras. A identidade de escalares é tipada: por exemplo, `True`, `1` e `1.0` são valores distintos para fins de fatos e consultas. Veja os testes em `tests/` para exemplos de proveniência, provas alternativas, consultas abertas, contradições e lifecycle de regras.
+
+## Testes e validação
+
+Com o pacote instalado em modo editável e a toolchain Rust disponível para os testes nativos:
 
 ```bash
 python -m unittest discover -s tests -v
+```
+
+Para executar somente os testes de portabilidade:
+
+```bash
 python -m unittest discover -s tests/portability -v
 ```
 
-Consulte o [guia de testes](docs/development/TESTING.md). A compatibilidade de plataforma deve ser julgada somente pelos resultados da CI registrados para a branch/commit em questão. Consulte [suporte por plataforma](docs/architecture/PLATFORM_SUPPORT.md); Linux ARM64 só será declarado suportado após execução real em runner apropriado.
+A suíte verifica as APIs, a integração Rust, a equivalência com oráculos de referência e aspectos de compatibilidade entre plataformas. Consulte o [guia de testes](docs/development/TESTING.md). A ausência de Rust pode fazer com que testes que dependem do compilador nativo não executem seu caminho completo; isso não valida a FFI naquele ambiente.
 
 ## Benchmarks e datasets
 
-O benchmark básico pode ser iniciado com `python aether_bench.py` (entrypoint flat de compatibilidade) ou `python -m benchmarks.baseline.aether_bench`. Para benchmarks por fase, use os módulos em `benchmarks/phase2/` até `benchmarks/phase8/`; comandos históricos na raiz são wrappers temporários. Antes de uma execução completa, valide parâmetros pequenos e use um novo caminho `--out`. Os scripts se recusam a sobrescrever diretórios de saída já preenchidos.
+Os scripts canônicos ficam em `benchmarks/` e podem ser chamados como módulos. Para ver parâmetros e escolher cargas pequenas antes de uma execução completa:
 
-Dados SNAP grandes não são incluídos no pacote. O manifesto canônico está em [`datasets/manifests/phase5_datasets.json`](datasets/manifests/phase5_datasets.json); confira condições de uso e hashes antes do download. Consulte o [guia de benchmarks](docs/development/BENCHMARKS.md). Métricas sem suporte confiável são registradas como `null`, nunca inventadas como zero. Não compare proxies de operações entre algoritmos como FLOPs.
+```bash
+python -m benchmarks.baseline.aether_bench --help
+python -m benchmarks.phase8.phase8_bench --help
+```
 
-## Histórico preservado
+Exemplo de smoke da Phase 8 (um workload/seed, resultados temporários):
 
-Os relatórios, auditorias e procedimentos históricos foram movidos sem apagar seu conteúdo: [fases](docs/phases/), [auditorias](docs/audits/) e [decisões arquiteturais](docs/decisions/). Artefatos históricos das fases 2 a 8 ficam em `results/`; os valores e a proveniência anteriores à reorganização foram preservados, incluindo os resultados da Phase 8 integrados ao `main`. O código de benchmark da Phase 8 está em `benchmarks/phase8/`, e seus relatórios em `docs/phases/`. O arquivo original da primeira versão permanece em `archive/v1/`.
+```bash
+python -m benchmarks.phase8.phase8_bench \
+  --seeds 1 \
+  --families contradictions \
+  --out /tmp/aether-phase8-smoke
+```
+
+Para a configuração completa da Phase 8, consulte o [relatório e metodologia](docs/phases/PHASE8_REPORT.md). Os benchmarks devem usar diretórios `--out` novos; scripts que protegem resultados existentes recusam sobrescrever pastas preenchidas. Resultados antigos em `results/` são registros históricos e não comparações automaticamente reproduzíveis em outro host.
+
+Datasets SNAP grandes **não são incluídos** no pacote. O manifesto versionado está em [`datasets/manifests/phase5_datasets.json`](datasets/manifests/phase5_datasets.json); consulte as condições e fontes antes de baixar os arquivos e confira os hashes registrados. Veja também o [guia de benchmarks](docs/development/BENCHMARKS.md). Medições que não estão disponíveis de forma confiável devem permanecer ausentes (`null`), não ser inventadas como zero. Proxies de operações não são FLOPs e não devem ser comparados como se medissem o mesmo trabalho entre algoritmos.
+
+## Documentação adicional
+
+- [Arquitetura](docs/architecture/OVERVIEW.md), [módulos](docs/architecture/MODULES.md) e [dependências](docs/architecture/DEPENDENCIES.md)
+- [Relatórios de fases](docs/phases/) e [resultados históricos](results/)
+- [Configuração do ambiente](docs/development/SETUP.md), [testes](docs/development/TESTING.md) e [benchmarks/datasets](docs/development/BENCHMARKS.md)
+- [Auditoria inicial](docs/audits/REPOSITORY_REORGANIZATION_BASELINE.md) e [relatório de reorganização](docs/audits/REPOSITORY_REORGANIZATION_REPORT.md)
 
 ## Licença e segurança
 
-O código é distribuído sob MIT (consulte `LICENSE`). Para reporte responsável de vulnerabilidades, consulte `SECURITY.md`.
+O código é distribuído sob a licença [MIT](LICENSE). Para relatar vulnerabilidades de forma responsável, consulte [SECURITY.md](SECURITY.md).
