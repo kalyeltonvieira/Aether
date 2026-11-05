@@ -187,6 +187,19 @@ python3 phase7new_rust_bench.py --queries 1000
 
 Consulte [`PHASE7NEW_REPORT.md`](PHASE7NEW_REPORT.md) e os artefatos em `results/phase7new/`. A projeção completa verifica o SHA-256 do manifesto e mantém a proveniência no `KnowledgeStore`; os benchmarks registram explicitamente quando medem uma amostra ou apenas a relação direta.
 
+## Fase 8: semântica de provas, consultas e avaliação adaptativa
+
+A Phase 8 preserva os experimentos anteriores e endurece as chaves escalares tipadas, o registro de provas alternativas, a invalidação por dependência, a enumeração de bindings para consultas abertas, o versionamento do índice Rust e o lifecycle de regras. O `KnowledgeReasoner` invalida resultados após mudanças de regra ou mutações externas e exige recomputação antes de declarar conclusões atuais. Incompatibilidades só são consideradas quando declaradas; conflitos e evidências permanecem armazenados e uma resolução é registrada separadamente.
+
+Execute a suíte completa e os dez workloads determinísticos (30 seeds por família) com:
+
+```bash
+python3 -m unittest discover -v
+python3 phase8_bench.py --seeds 30 --out results/phase8
+```
+
+O benchmark inclui grafos esparsos/densos, cadeias, relações múltiplas, provas alternativas, conflitos, variáveis livres, inserções, remoções e mudança de regras. Cada sessão separa três consultas de calibração de cinco consultas holdout; o holdout não atualiza EMA de custo nem estatísticas de completude (a contagem de queries históricas avança como feature observável). A família de mudança de regras também registra três consultas de aquecimento pré-transição, fora das linhas de calibração/holdout. `runs.csv`, `summary.json` e `metadata.json` guardam hashes, ambiente, métricas, comparações pareadas e indisponibilidades como `null`. A carga é sintética; os custos de conversão/construção/refresh Rust são reportados separadamente e **não** são usados para alegar superioridade end-to-end. O relatório [`PHASE8_REPORT.md`](PHASE8_REPORT.md) discrimina resultados efetivamente executados, estado da CI por plataforma e pendências.
+
 ## Licença
 
 O código-fonte do projeto é disponibilizado sob a licença MIT, conforme [`LICENSE`](LICENSE). Isso não altera os termos dos datasets externos: arquivos SNAP não são incluídos na distribuição e devem ser obtidos e usados conforme as condições publicadas por suas fontes.
