@@ -21,14 +21,12 @@ class KnowledgeReasonerTests(unittest.TestCase):
         self.assertTrue(state.complete_for_current_store)
         self.assertIn(("a", "p", "c"), {fact.key for fact in state.result.conclusions})
 
-    def test_new_fact_marks_state_stale_instead_of_claiming_incremental_update(self):
+    def test_new_fact_is_propagated_by_incremental_agenda(self):
         self.reasoner.recompute()
         self.store.add_entity("d")
         fact, inserted = self.reasoner.add_fact("c", "p", "d", provenance=Provenance("fixture"))
         self.assertTrue(inserted)
-        self.assertFalse(self.reasoner.state.complete_for_current_store)
-        self.assertEqual(self.reasoner.state.stale_reason, "new_fact_requires_recompute")
-        self.reasoner.recompute()
+        self.assertTrue(self.reasoner.state.complete_for_current_store)
         self.assertIn(("a", "p", "d"), {item.key for item in self.reasoner.conclusions()})
 
     def test_removal_invalidates_only_dependent_conclusions_and_marks_alternatives_uncertain(self):

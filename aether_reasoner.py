@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from aether_dependencies import DependencyTracker, InvalidationStats
 from aether_inference import InferenceEngine, InferenceLimits, InferenceResult, Rule
+from aether_incremental import IncrementalInference
 from aether_knowledge import Fact, KnowledgeStore, Provenance, Scalar
 
 
@@ -27,6 +28,7 @@ class KnowledgeReasoner:
     def __init__(self, store: KnowledgeStore, rules: tuple[Rule, ...] | list[Rule] = ()) -> None:
         self.store = store
         self.engine = InferenceEngine(store, rules)
+        self._incremental = IncrementalInference(store, rules)
         self._state: ReasonerState | None = None
         self._tracker: DependencyTracker | None = None
 
@@ -35,7 +37,7 @@ class KnowledgeReasoner:
         return self._state
 
     def recompute(self, limits: InferenceLimits | None = None) -> ReasonerState:
-        result = self.engine.infer(limits)
+        result = self._incremental.initialize(limits)
         self._tracker = DependencyTracker(result)
         self._state = ReasonerState(result, self.store.version, result.complete, None if result.complete else result.stop_reason)
         return self._state
@@ -49,6 +51,18 @@ class KnowledgeReasoner:
         provenance: Provenance | None = None,
         confidence: float | None = None,
     ) -> tuple[Fact, bool]:
+        if self._state is not None and self._state.complete_for_current_store:
+            fact, update = self._incremental.add_fact(subject, predicate, object, provenance=provenance, confidence=confidence)
+            inserted = update.inserted
+            result = self._incremental.result()
+            if not inserted:
+                return fact, False
+            if update.complete:
+                self._tracker = DependencyTracker(result)
+                self._state = ReasonerState(result, self.store.version, True, None)
+            else:
+                self._state = ReasonerState(result, self.store.version, False, update.stop_reason or "incremental_update_incomplete")
+            return fact, True
         fact, inserted = self.store.add_fact(subject, predicate, object, provenance=provenance, confidence=confidence)
         if inserted and self._state is not None:
             self._state = ReasonerState(self._state.result, self.store.version, False, "new_fact_requires_recompute")
@@ -60,6 +74,7 @@ class KnowledgeReasoner:
             return None
         stats = self._tracker.invalidate({fact_id})
         self.store.remove_fact(fact_id)
+        self._incremental = IncrementalInference(self.store, self.engine.rules)
         remaining = tuple(self._tracker.active)
         result = InferenceResult(
             remaining,
