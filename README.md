@@ -145,3 +145,16 @@ python3 phase5_plot.py
 A bateria concluída nesta sessão contém 240 benchmarks SNAP reais e 480 execuções sintéticas, todas exatas contra oráculos independentes. A comparação NetworkX foi executada separadamente em ambiente virtual, com 15 execuções e os mesmos hashes de workloads; NetworkX não é uma dependência do AETHER. Veja [relatório técnico da Fase 5](PHASE5_REPORT.md), [instalação multiplataforma](PHASE5_INSTALL.md), [pesquisa/procedência SNAP](PHASE5_SNAP_RESEARCH.md), [CSV/JSON reais](results/phase5/real_data/), [resultados sintéticos](results/phase5/synthetic_30seeds/), [componentes](results/phase5/components/) e [gráficos](results/phase5/plots/).
 
 Windows 10/11 possui procedimento de compilação documentado, incluindo o linker MSVC, mas não foi executado nesta tarefa. Portanto, o código foi preparado para carregamento `.dll`/`.so`/`.dylib`, mas não se declara compatibilidade Windows medida.
+
+## Fase 7: conhecimento estruturado e raciocínio relacional
+
+A Fase 7 adiciona uma camada experimental em `aether_knowledge.py`, `aether_inference.py`, `aether_consistency.py`, `aether_dependencies.py` e `aether_reasoner.py`. Ela representa entidades, fatos tipados, propriedades, proveniência, regras determinísticas, conclusões com dependências e invalidação localizada. A sessão marca adições como `stale` até recomputação e não declara incrementalidade completa quando provas alternativas podem existir.
+
+Reproduza os testes e o benchmark controlado com:
+
+```bash
+python3 -m unittest discover -v
+python3 phase7_bench.py --out results/phase7/knowledge_benchmark --seeds 30
+```
+
+O benchmark separa 15 seeds de calibração e 15 holdout em cada uma de duas famílias sintéticas. Os dados são fixtures de software, não treinamento e não conhecimento aberto. Resultados, procedência, CSV e gráfico ficam em `results/phase7/knowledge_benchmark/`; o escopo e os critérios ainda pendentes estão em [`PHASE7_REPORT.md`](PHASE7_REPORT.md).
