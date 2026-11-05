@@ -31,3 +31,9 @@ restored = KnowledgeStore.load("data/aether-knowledge.json")
 ```
 
 O snapshot é um ponto de recuperação, não um log transacional de cada write. Coordenar snapshot de conhecimento com eventos de domínio requer o Event Engine e a política de checkpoints correspondentes; não se assume atomicidade cruzada entre dois arquivos ou dois bancos.
+
+## Padrões operacionais limitados
+
+`IncrementalPatternLearner` agora limita globalmente chaves (`max_keys`, padrão 4.096), tipos de operação (`max_kinds`, 64), fontes de transição (`max_transition_sources`, 4.096) e alvos por fonte (`max_transition_targets`, 64). Ao exceder o conjunto residente, remove o contador menos frequente com desempate lexical determinístico e registra evicções. `events_seen` permanece a contagem observada total; a frequência de uma entrada descartada deixa de ser retida. O custo de substituição pode examinar o conjunto limitado, portanto não se promete O(1) quando há eviction.
+
+Os padrões contam acessos/transições, não semântica. Contadores, cache, histórico de consultas, log de eventos e conhecimento explícito continuam distintos. Benchmarks de manutenção/recuperação estão em [OPERATIONAL_BENCHMARKS](OPERATIONAL_BENCHMARKS.md).
