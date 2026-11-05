@@ -28,10 +28,18 @@ class BackwardInferenceTests(unittest.TestCase):
         self.assertEqual(proof.rule_id, "transitive")
         self.assertEqual(set(proof.supports), {1, 2})
 
+    def test_search_does_not_stop_at_first_failing_candidate(self):
+        self.store.add_entity("dead")
+        self.store.add_fact("a", "link", "dead", provenance=Provenance("fixture"))
+        proof = BackwardInference(self.store, [self.rule]).prove(("a", "link", "c"))
+        self.assertTrue(proof.proven)
+        self.assertEqual(set(proof.supports), {1, 2})
+
     def test_unproven_goal_is_not_invented(self):
         proof = BackwardInference(self.store, [self.rule]).prove(("d", "link", "a"))
         self.assertFalse(proof.proven)
-        self.assertTrue(proof.complete)
+        self.assertFalse(proof.complete)
+        self.assertEqual(proof.stop_reason, "limit")
 
     def test_depth_limit_is_explicit(self):
         proof = BackwardInference(self.store, [self.rule]).prove(("a", "link", "d"), BackwardLimits(max_depth=1))
