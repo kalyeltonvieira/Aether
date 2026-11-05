@@ -18,6 +18,7 @@ Os módulos novos são:
 
 - `aether_knowledge.py`: entidades, fatos, propriedades, IDs determinísticos, proveniência, confiança, deduplicação e índices.
 - `aether_inference.py`: padrões, regras Horn determinísticas, forward chaining limitado, profundidade e explicações por dependências.
+- `aether_backward.py`: backward chaining query-driven limitado, com prova direta, ciclos e limites explícitos.
 - `aether_consistency.py`: detecção de proveniência ausente, conflitos explícitos, ciclos proibidos, regras contraditórias e dependências inválidas.
 - `aether_dependencies.py`: índice reverso fato/conclusão e invalidação localizada.
 - `aether_reasoner.py`: sessão segura que diferencia estado completo, estado stale e estado que precisa de recomputação.
@@ -33,7 +34,7 @@ Os índices mantidos são sujeito→fatos, predicado→fatos e objeto→fatos. C
 
 ## 3. Relações, inferências e explicações
 
-As regras são explícitas e determinísticas. Uma regra possui antecedentes com variáveis no formato `?x` e um consequente cujas variáveis devem aparecer nos antecedentes. O exemplo medido é a transitividade:
+As regras são explícitas e determinísticas. Uma regra possui antecedentes com variáveis no formato `?x` e um consequente cujas variáveis devem aparecer nos antecedentes. O exemplo de transitividade usado nos testes é:
 
 ```text
 (?x, connected, ?y) ∧ (?y, connected, ?z)
@@ -43,6 +44,8 @@ As regras são explícitas e determinísticas. Uma regra possui antecedentes com
 O motor executa joins por predicado em ondas de profundidade. Conclusões repetidas não são duplicadas; ciclos terminam porque uma conclusão estrutural já conhecida não é emitida novamente. Cada `DerivedFact` registra regra, profundidade e suportes, que podem ser IDs de fatos explícitos ou chaves de conclusões derivadas.
 
 A explicação recupera a conclusão solicitada e percorre somente as dependências derivadas necessárias, sem copiar o Knowledge Store. Ausência de conclusão retorna vazio/indeterminado; não há geração de resposta negativa como se fosse um fato provado.
+
+O backward chaining recebe um objetivo concreto e tenta prová-lo primeiro por fato explícito; quando necessário, unifica o consequente de uma regra e busca seus antecedentes. Ele é query-driven e pode evitar gerar conclusões irrelevantes, mas a versão atual escolhe o primeiro candidato compatível para variáveis livres e ainda não foi comparada quantitativamente ao forward em uma bateria separada. Essa limitação permanece aberta.
 
 ## 4. Limites e segurança computacional
 
@@ -101,7 +104,7 @@ Não há comparação numérica direta entre os milissegundos da Fase 7 e os das
 | Benchmarks reproduzíveis | Atendido para o benchmark sintético; SNAP semântico ainda não integrado |
 | Resultados históricos preservados | Atendido; nenhum artefato das Fases 1–6 foi sobrescrito |
 | Rust atualizado/integrado | Não atendido nesta etapa; ainda sem justificativa quantitativa end-to-end |
-| Forward/backward/híbrido comparados | Não atendido; somente forward chaining limitado foi implementado |
+| Forward/backward/híbrido comparados | Parcial: forward e backward implementados e testados, mas ainda sem comparação quantitativa dedicada; híbrido não implementado |
 | Holdout com controlador adaptativo de estratégia | Não atendido; controlador permanece o da Fase 6 e não foi promovido |
 | Dataset público com transformação semântica auditável | Não atendido; SNAP continua estrutural, não semântico |
 
