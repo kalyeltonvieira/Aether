@@ -101,7 +101,15 @@ def load_email_eu_core(
     for source, target, line_number in records:
         store.add_fact(
             _entity_id(dataset_id, source), predicate, _entity_id(dataset_id, target),
-            provenance=Provenance(source=source_url, evidence=f"{path.name}:line:{line_number}"),
+            provenance=Provenance(
+                source=source_url,
+                evidence=f"{path.name}:line:{line_number}",
+                source_url=source_url,
+                source_line=line_number,
+                record_id=f"{dataset_id}:{line_number}",
+                evidence_type="dataset_edge_record",
+                transformation="unique directed SNAP edge -> KnowledgeStore fact",
+            ),
             properties={"dataset_id": dataset_id, "source_node": source, "target_node": target},
         )
     return store, SemanticLoad(
