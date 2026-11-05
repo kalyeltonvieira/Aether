@@ -334,11 +334,12 @@ class StudioState:
         self.controller = self._new_controller()
         self.reasoner.recompute(self._limits())
 
-        self.events = EventEngine(self.data_dir / "events.sqlite3")
+        event_path = self.data_dir / "events.sqlite3" if self.config["persistence_enabled"] else ":memory:"
+        self.events = EventEngine(event_path)
         self.processor = KnowledgeEventProcessor(self.reasoner, snapshot_path=snapshot_path if self.config["persistence_enabled"] else None)
         self.memory = AdaptiveMemory(
             self.config["memory_max_bytes"],
-            cold_store=self.data_dir / "memory.sqlite3",
+            cold_store=self.data_dir / "memory.sqlite3" if self.config["persistence_enabled"] else None,
         )
         self.query_cache.backend = self.memory
         self._rust_available, self._rust_error = self._verify_rust()
@@ -563,7 +564,10 @@ class StudioState:
             self._validate_config(proposed)
             if proposed["rust_enabled"] and not self._rust_available:
                 raise ValueError("rust_enabled cannot be true because Rust availability was not verified")
-            old_persistence = self.config["persistence_enabled"]
+            if proposed["persistence_enabled"] != self.config["persistence_enabled"]:
+                raise ValueError(
+                    "persistence_enabled is a startup-only setting; update config.json and restart the Studio"
+                )
             self.config = proposed
             self._config_version += 1
             self.query_cache.clear()
@@ -574,10 +578,7 @@ class StudioState:
                 except Exception:
                     self.config["memory_max_bytes"] = self.memory.max_bytes
                     raise
-            if old_persistence != proposed["persistence_enabled"] and proposed["persistence_enabled"]:
-                self.persist()
-            else:
-                self._persist_config()
+            self._persist_config()
             self.controller = self._new_controller()
             self.reasoner.join_planner = proposed["join_planner"]
             self.record_activity("config.update", fields=sorted(updates))

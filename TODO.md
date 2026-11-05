@@ -1,5 +1,20 @@
 # Entregas AETHER — critérios e estado
 
+Este roadmap substitui a organização antiga em etapas A–E. Os checklists abaixo são snapshots históricos de critérios/evidências, não uma declaração de conclusão do roadmap atual.
+
+## [~] Etapa 1 — consolidação e confiabilidade (em andamento)
+O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`; CI desse SHA passou 13/13 jobs: Python Ubuntu/macOS/Windows 3.10/3.12/3.13, Studio Ubuntu/Windows e E2E Ubuntu/Windows ([run 42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). A branch local `fix/stage1-reliability` corrige os três achados: sessão Preview limitada ao `exp` do JWT, stores de domínio efetivamente efêmeros no modo sem persistência e reserva de OAuth state antes de I/O. Validação local: unittest 207 aprovados/6 skips e pytest 202 aprovados/21 skips (sem `rustc`); typecheck, 16 testes frontend, build e wheel com `benchmarks.phase9` incluído passaram. CI desta branch e merge ainda pendentes; não declarar a Etapa 1 concluída.
+
+## [~] Etapa 2 — núcleo cognitivo (parcial)
+Há núcleo simbólico, mas memória contextual e aprendizado de estruturas ainda não estão implementados. Escopo: memória contextual, aprendizado e revisão, conflitos, raciocínio, recuperação e tratamento explícito de insuficiência.
+
+## [~] Etapa 3 — autonomia e eficiência medida
+Há benchmarks delimitados. O controller adaptativo perdeu para estratégia fixa em 9/10 famílias e não foi promovido; energia não foi medida.
+
+## [ ] Etapa 4 — integrações (não implementada)
+Integrações LLM, linguagem natural, documentos, multimodalidade, ferramentas e agentes. LLM não é fonte de verdade; evidências e estado canônico permanecem no sistema.
+
+## Snapshot histórico de fases anteriores
 Cada item mantém os critérios do brief original junto do resultado correspondente. Status não presume testes em sistemas que não foram executados.
 
 ## [x] Etapa A — conhecimento e raciocínio robusto
@@ -48,3 +63,5 @@ Cada item mantém os critérios do brief original junto do resultado corresponde
 - **Docs/benchmarks:** criar/atualizar `docs/architecture/{OVERVIEW,PLATFORM,REASONING,EVENT_ENGINE,MEMORY,API}.md`, `docs/development/{SETUP_WINDOWS,SETUP_LINUX,WEB_STUDIO}.md`, guia de uso Studio e README; capturas reais quando disponíveis; benchmarks independentes para cinco áreas, ≥30 seeds/família quando aplicável, split calibração/holdout, custo completo, resultados em `results/evolution/`, ambiente/hardware/SO/versões/hashes, sem comparar ambientes incompatíveis.
 - **Entrega Git:** publicar somente `evolution/aether-platform`, commits separados por fase, sem merge automático, sem modificar branches históricas. Ao final informar commits, arquivos, arquitetura, testes aprovados/falhos/ignorados, resultados por SO, benchmarks, estado API/UI, funcionalidades concluídas/pendentes e instruções.
 - **Evidência até aqui (item permanece aberto):** Linux ARM64 local: `unittest` 220 OK; `pytest` 220 OK; frontend typecheck, 15 unit tests, build e Chromium E2E (2/2) OK; 10 capturas reais arquivadas; wheel/sdist construídos; benchmark API 30/30 oráculos em calibração/holdout. Login OAuth Manus real e callback no Preview foram concluídos; a sessão ficou `reader`, conforme política. Primeira CI executada: Python 3.10/3.12/3.13 em Ubuntu/macOS passou, Studio frontend Ubuntu/Windows passou e E2E Ubuntu passou; Windows Python e E2E detectaram `fsync` com handle somente leitura e handles SQLite não fechados em alguns testes. A correção local passou de novo em `unittest`/`pytest` 220 e E2E 2/2; a CI do follow-up ainda precisa passar. ARM64 foi validado apenas no host desta sessão; não declarar suporte Windows/Linux x86_64 antes do rerun remoto.
+
+**Atualização corrente do snapshot:** a CI do commit base integrado a `main` passou 13/13 jobs ([run 42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). Os três reparos de confiabilidade estão implementados e validados localmente em `fix/stage1-reliability`; falta executar CI sobre essa branch e revisar/mesclar as mudanças.

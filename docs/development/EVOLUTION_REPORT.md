@@ -1,20 +1,21 @@
 # Relatório de evolução — AETHER
 
-## Escopo e estado
+## Estado corrente (atualização)
+O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`. A execução GitHub Actions [42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839) passou 13/13 jobs: Python Ubuntu/macOS/Windows em 3.10/3.12/3.13, Studio Ubuntu/Windows e E2E Ubuntu/Windows. A branch local `fix/stage1-reliability` corrige os três achados: sessão Preview limitada ao `exp` do JWT, stores de domínio efêmeros em todos os componentes quando a persistência é desligada e OAuth state reservado antes de I/O externo. Validação desta branch: unittest 207 aprovados/6 skips; pytest 202 aprovados/21 skips (todos relacionados à ausência de `rustc`); frontend typecheck, 16 testes e build aprovados. Smoke build do wheel inclui os harnesses `benchmarks.phase9` e não emite o aviso de pacote omitido. A CI desta branch ainda não foi executada nem houve merge; Etapa 1 permanece em andamento até essa validação.
 
-Esta branch mantém as fases A–D em commits separados e integra a fase E como camada opcional de produto. Não foi feito merge em `main` nem em branches históricas. O primeiro commit E `193910045e3ba83e849923e32a62a26c3fc74281` já está em `origin/evolution/aether-platform`; uma correção de portabilidade para Windows está em validação.
-
+## Snapshot histórico da evolução anterior
+O conteúdo restante registra a fase de desenvolvimento anterior, incluindo sua branch, commits, validações e pendências à época; não é a descrição do estado corrente de integração/CI.
 O Studio separa o núcleo AETHER, a API FastAPI e o cliente React/TypeScript/Vite. A UI usa REST e WebSocket; o servidor valida os padrões como dados estruturados, compõe `KnowledgeStore`, `KnowledgeReasoner`, `AdaptiveMemory` e `EventEngine` reais, e não expõe execução Python arbitrária. Operações nativas só são declaradas disponíveis quando a biblioteca é realmente encontrada/carregada; métricas não instrumentadas permanecem `null`. O frontend separa os módulos por rota, e o build atual não emite o alerta anterior de chunk maior que 500 kB.
 
 ## Progresso por fase
 
 | Fase | Estado | Evidência principal |
 |---|---|---|
-| A — conhecimento e raciocínio | Concluída | Commit `9a8e99f`: evidência/proveniência alternativas, identidade escalar tipada, provas e paginação estável de consultas abertas; API antiga e aliases preservados. |
-| B — memória e aprendizado incremental | Concluída | Commits `7c8d7e7` e `1c25fa2`: SQLite/cold tier, snapshots tipados verificáveis e checksum, histórico limitado, limites globais de padrões, recuperação e migração testadas. |
-| C — eventos | Concluída | Commit `abd6b4b`: Event Engine SQLite ordenado, deduplicação, backpressure, retry/replay/checkpoint; integração com o Reasoner incremental e semântica documentada at-least-once. |
-| D — eficiência | Concluída | Commits `a153a0e` e `d453b2f`: planner seletivo mensurável, controller com memória observada, benchmarks independentes e decisão conservadora de não promover estratégia adaptativa que perdeu das fixas. |
-| E — API, segurança e AETHER Studio | Implementada; validação externa ainda em curso | FastAPI + React/Vite, autenticação/token independente, contrato Manus OAuth, OpenAPI, nove rotas, WebSocket, persistência, CRUD, grafo, reasoning/proofs, memória, eventos, métricas, settings, launcher Windows/Linux, CI e capturas reais. Ver bloqueios abaixo. |
+| A — conhecimento e raciocínio (snapshot histórico) | Concluída no escopo da fase | Commit `9a8e99f`: evidência/proveniência alternativas, identidade escalar tipada, provas e paginação estável de consultas abertas; API antiga e aliases preservados. |
+| B — memória e aprendizado incremental (snapshot histórico) | Concluída no escopo da fase | Commits `7c8d7e7` e `1c25fa2`: SQLite/cold tier, snapshots tipados verificáveis e checksum, histórico limitado, limites globais de padrões, recuperação e migração testadas. |
+| C — eventos (snapshot histórico) | Concluída no escopo da fase | Commit `abd6b4b`: Event Engine SQLite ordenado, deduplicação, backpressure, retry/replay/checkpoint; integração com o Reasoner incremental e semântica documentada at-least-once. |
+| D — eficiência (snapshot histórico) | Concluída no escopo da fase | Commits `a153a0e` e `d453b2f`: planner seletivo mensurável, controller com memória observada, benchmarks independentes e decisão conservadora de não promover estratégia adaptativa que perdeu das fixas. |
+| E — API, segurança e AETHER Studio (snapshot histórico) | Implementada no escopo da fase; validação externa ainda em curso naquele registro | FastAPI + React/Vite, autenticação/token independente, contrato Manus OAuth, OpenAPI, nove rotas, WebSocket, persistência, CRUD, grafo, reasoning/proofs, memória, eventos, métricas, settings, launcher Windows/Linux, CI e capturas reais. Ver bloqueios abaixo. |
 
 ## Validação executada neste checkout
 
@@ -43,11 +44,10 @@ Não foi medida energia. Throughput de janela e RSS high-water não são limites
 
 `docs/development/STUDIO_SCREENSHOTS.md` incorpora capturas de Chromium da aplicação/API autenticadas em store temporário. Knowledge Graph, Reasoning Console e Proof Explorer foram fotografados enquanto as entidades, relação e prova do E2E existiam; depois, o teste remove o suporte. A tela Dashboard registra honestamente o estado `incomplete` pós-remoção. As imagens não usam dados de produção.
 
-## Pendências antes de declarar suporte completo
-
-1. **CI após push:** o workflow real concluiu. Ubuntu (Python 3.10/3.12/3.13, Studio e E2E) e macOS (Python 3.10/3.12/3.13) passaram; Studio frontend também passou no Windows. Python 3.10/3.12/3.13 no Windows falhou na primeira tentativa por `os.fsync` sobre handle aberto só para leitura e testes deixando handles SQLite abertos durante o cleanup; E2E Windows falhou ao iniciar a mesma gravação atômica. Esses pontos foram corrigidos e os testes locais voltaram a passar; a CI do follow-up ainda precisa concluir antes de declarar Windows aprovado.
-2. **OAuth real:** validado. `auth/info` informa disponibilidade, `login-url` retorna `https://manus.im/app-auth` com parâmetros oficiais, e o cookie OAuth state no Preview é `Secure; HttpOnly; SameSite=None`. Depois do login Manus real e do callback, o navegador retornou à página `/reasoning` com uma sessão verificada no papel `reader`; não houve mutação de dados. O protocolo de troca `ExchangeToken`/`GetUserInfo` também tem teste com fixture HTTP. Para escrita, um administrador precisa adicionar o openId do operador a `AETHER_OPERATOR_OPEN_IDS` no servidor; autenticar identidade não concede escrita automaticamente.
-3. **Preview vs produção:** servidor/API local de Preview está ativo, mas a aplicação não foi publicada publicamente. Não confundir branch GitHub ou Preview com publicação.
+## Pendências e ressalvas (registro histórico e estado corrente)
+1. **CI follow-up:** o registro histórico abaixo ficou obsoleto. Estado corrente: a CI do commit integrado `0fd08c016e36779d61f0a140b0b8ca517e9c298d` passou 13/13 jobs na execução [42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839). Os três reparos locais foram implementados e passaram as validações listadas acima; falta executar CI sobre `fix/stage1-reliability` e revisar/mesclar o branch.
+2. **OAuth real (snapshot histórico):** validado. `auth/info` informa disponibilidade, `login-url` retorna `https://manus.im/app-auth` com parâmetros oficiais, e o cookie OAuth state no Preview é `Secure; HttpOnly; SameSite=None`. Depois do login Manus real e do callback, o navegador retornou à página `/reasoning` com uma sessão verificada no papel `reader`; não houve mutação de dados. O protocolo de troca `ExchangeToken`/`GetUserInfo` também tem teste com fixture HTTP. Para escrita, um administrador precisa adicionar o openId do operador a `AETHER_OPERATOR_OPEN_IDS` no servidor; autenticar identidade não concede escrita automaticamente.
+3. **Preview vs produção:** servidor/API de Preview não equivale a publicação pública. A sessão opaca Preview desta branch expira até o `exp` do JWT, mas a API não faz introspecção para detectar revogação antecipada pelo provedor; a CI da branch ainda está pendente.
 
 ## Como executar
 

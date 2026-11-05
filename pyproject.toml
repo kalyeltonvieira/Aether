@@ -71,6 +71,7 @@ packages = [
   "benchmarks.phase7",
   "benchmarks.phase7new",
   "benchmarks.phase8",
+  "benchmarks.phase9",
 ]
 py-modules = [
   "aether_adaptive_controller",

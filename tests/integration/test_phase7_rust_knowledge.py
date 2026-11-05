@@ -1,9 +1,11 @@
+import shutil
 import unittest
 
 from aether.core.knowledge.store import KnowledgeStore, Provenance
 from aether.graph.indexing.rust_knowledge import RustKnowledgeIndex
 
 
+@unittest.skipUnless(shutil.which("rustc"), "Rust toolchain is not installed")
 class RustKnowledgeIndexTests(unittest.TestCase):
     def test_rust_index_matches_python_fact_and_keeps_provenance(self):
         store = KnowledgeStore()
