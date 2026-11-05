@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Iterator
 
 from aether_inference import InferenceResult, Rule
 from aether_knowledge import KnowledgeStore
@@ -64,23 +64,41 @@ class ConsistencyValidator:
             adjacency: dict[str, list[tuple[str, int]]] = {}
             for source, target, fact_id in edges:
                 adjacency.setdefault(source, []).append((target, fact_id))
-            visiting: set[str] = set()
             visited: set[str] = set()
-
-            def visit(node: str, path: tuple[int, ...]) -> None:
-                if node in visiting:
-                    issues.append(ConsistencyIssue("forbidden_cycle", f"cycle detected for predicate {predicate}", path))
-                    return
-                if node in visited:
-                    return
-                visiting.add(node)
-                for target, fact_id in adjacency.get(node, ()):
-                    visit(target, path + (fact_id,))
-                visiting.remove(node)
-                visited.add(node)
-
-            for node in adjacency:
-                visit(node, ())
+            active_index: dict[str, int] = {}
+            for start in adjacency:
+                if start in visited:
+                    continue
+                # Each frame holds a node, its remaining edges, and the edge
+                # used to enter it. This avoids Python recursion limits.
+                stack: list[tuple[str, Iterator[tuple[str, int]], int | None]] = [
+                    (start, iter(adjacency.get(start, ())), None)
+                ]
+                active_index[start] = 0
+                while stack:
+                    node, neighbors, _incoming_fact = stack[-1]
+                    try:
+                        target, fact_id = next(neighbors)
+                    except StopIteration:
+                        visited.add(node)
+                        active_index.pop(node, None)
+                        stack.pop()
+                        continue
+                    if target in active_index:
+                        cycle_start = active_index[target]
+                        cycle_facts = tuple(
+                            frame[2] for frame in stack[cycle_start + 1:] if frame[2] is not None
+                        ) + (fact_id,)
+                        issues.append(
+                            ConsistencyIssue(
+                                "forbidden_cycle",
+                                f"cycle detected for predicate {predicate}",
+                                cycle_facts,
+                            )
+                        )
+                    elif target not in visited:
+                        active_index[target] = len(stack)
+                        stack.append((target, iter(adjacency.get(target, ())), fact_id))
 
         rule_list = list(rules)
         for index, first in enumerate(rule_list):

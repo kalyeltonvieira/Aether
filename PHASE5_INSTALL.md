@@ -1,8 +1,16 @@
-# Instalação e execução — AETHER Fase 5
+# Instalação e execução — AETHER
 
 ## Requisitos
 
-O núcleo Python requer Python 3.10 ou posterior. A integração nativa requer Rust stable (`rustc`) com edição 2021 e um linker/runtime C apropriado ao sistema operacional. O núcleo não requer dependências Python externas. `matplotlib` e `numpy` são necessários somente para os gráficos. NetworkX é opcional e usado apenas no comparador externo; ele não é dependência de execução do AETHER.
+O núcleo Python requer Python 3.10 ou posterior e não tem dependências Python de runtime. Os metadados declarativos ficam em `pyproject.toml`; instale a distribuição e, quando necessário, seus extras:
+
+```bash
+python3 -m pip install .
+python3 -m pip install ".[plots]"       # gráficos: matplotlib e numpy
+python3 -m pip install ".[networkx]"    # comparador externo opcional
+```
+
+A integração nativa requer Rust `1.99.1` (`rustc`, fixado em `rust-toolchain.toml`) com edição 2021 e um linker/runtime C apropriado ao sistema operacional. A instalação Python inclui o código-fonte Rust usado pelo wrapper, mas não compila nem exige o backend nativo até que ele seja utilizado.
 
 A biblioteca é compilada automaticamente por `compile_native()` quando não há arquivo nativo no caminho esperado. O nome e a extensão dependem da plataforma atual: `build/libaether_native.so` no Linux, `build/aether_native.dll` no Windows e `build/libaether_native.dylib` no macOS. `AETHER_NATIVE_LIB` pode apontar para uma biblioteca já compilada; o wrapper só a aceita quando ABI, largura de ponteiro, plataforma e arquitetura forem compatíveis.
 
@@ -41,6 +49,8 @@ py -m unittest discover -v
 
 `compile_native()` chama `rustc` para criar `build\aether_native.dll`. O wrapper usa `ctypes.CDLL`, verifica ABI v2 e recusa carregar uma biblioteca construída para Linux, outra arquitetura ou outra versão da ABI. A validação efetiva em Windows 10 e Windows 11 permanece pendente; execute os mesmos comandos nessas versões antes de declarar compatibilidade.
 
+O workflow `.github/workflows/ci.yml` agora tenta validar automaticamente o pacote e a suíte com Rust stable em Linux, macOS e Windows, usando Python 3.10, 3.12 e 3.13. A adição da matriz não equivale a uma execução bem-sucedida: consulte o estado real do workflow no GitHub antes de anunciar suporte validado.
+
 ## Dados SNAP e benchmarks
 
 As origens, URLs e condições conhecidas estão em [`PHASE5_SNAP_RESEARCH.md`](PHASE5_SNAP_RESEARCH.md). Os arquivos selecionados são baixados somente a partir dos URLs no manifesto; o script grava SHA-256 e tamanho do arquivo em `phase5_datasets.json`. Os arquivos `.txt.gz` ficam em `data/phase5_snap/`, ignorados pelo Git, e não devem ser redistribuídos com este repositório porque as fontes consultadas não publicam licença específica para esses dados.
@@ -64,7 +74,7 @@ python3 -m venv /tmp/aether-networkx-env
 /tmp/aether-networkx-env/bin/python phase5_networkx_bench.py --out results/phase5/networkx_reference
 ```
 
-No Windows, use os equivalentes `.venv\Scripts\python.exe` e `pip`. O script verifica que o hash da carga gerada coincide com o benchmark AETHER principal e confere respostas com BFS independente. Ele cobre apenas datasets pequenos/médios selecionados; não altera `requirements.txt` nem é usado automaticamente pelo núcleo.
+No Windows, use os equivalentes `.venv\Scripts\python.exe` e `pip`. O script verifica que o hash da carga gerada coincide com o benchmark AETHER principal e confere respostas com BFS independente. Ele cobre apenas datasets pequenos/médios selecionados; a dependência opcional está declarada no extra `networkx` de `pyproject.toml` e não é usada automaticamente pelo núcleo.
 
 ## Ambiente efetivamente medido
 

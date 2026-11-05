@@ -1,6 +1,10 @@
-# Projeto Aether — protótipo mínimo executável
+# Projeto Aether — protótipo experimental de grafos e conhecimento relacional
 
-Este protótipo testa uma hipótese limitada da arquitetura: **em uma sequência de inserções de arestas e consultas de alcançabilidade, manter o fecho transitivo atualizado pode reduzir o trabalho repetido por consulta**. Não é um sistema de inteligência geral, não usa LLM e não afirma aprender linguagem ou conhecimento aberto.
+O Aether reúne experimentos com grafos dinâmicos e raciocínio relacional. A hipótese original é limitada: **em uma sequência de inserções de arestas e consultas de alcançabilidade, manter o fecho transitivo atualizado pode reduzir o trabalho repetido por consulta**. Não é um sistema de inteligência geral, não usa LLM e não afirma aprender linguagem ou conhecimento aberto.
+
+## Estado atual
+
+A branch `main` contém a extensão `phase7new`. O relatório [`PHASE7_REPORT.md`](PHASE7_REPORT.md) é um registro histórico anterior; para o estado posterior, consulte [`PHASE7NEW_REPORT.md`](PHASE7NEW_REPORT.md). O escopo continua experimental: remoções com provas alternativas exigem recomputação para garantir completude, o controlador escolhe apenas entre estratégias implementadas e o backend Rust indexa relações diretas, sem executar as regras simbólicas.
 
 ## O que foi implementado
 
@@ -22,6 +26,18 @@ Requer Python 3.10+ e somente biblioteca padrão:
 cd Aether
 python3 aether_bench.py
 ```
+
+## Instalação e dependências opcionais
+
+O núcleo pode ser instalado como distribuição Python a partir do checkout:
+
+```bash
+python3 -m pip install .
+```
+
+O núcleo não exige dependências Python de runtime. Para gerar gráficos, instale `python3 -m pip install ".[plots]"`; para o comparador NetworkX, use `python3 -m pip install ".[networkx]"`. A integração Rust é opcional, mas requer Rust `1.99.1` (fixado em `rust-toolchain.toml`) e um linker adequado à plataforma; o wrapper compila a biblioteca na primeira utilização quando não há uma biblioteca compatível disponível.
+
+Os scripts de benchmark e os testes continuam sendo executados a partir do checkout. A suíte completa e a construção de wheels/SDists são automatizadas em `.github/workflows/ci.yml`. A matriz da CI inclui Linux, macOS e Windows; suporte a uma plataforma só deve ser considerado validado após a execução verde do workflow nessa plataforma.
 
 Parâmetros ajustáveis:
 
@@ -148,7 +164,7 @@ Windows 10/11 possui procedimento de compilação documentado, incluindo o linke
 
 ## Fase 7: conhecimento estruturado e raciocínio relacional
 
-A Fase 7 adiciona uma camada experimental em `aether_knowledge.py`, `aether_inference.py`, `aether_consistency.py`, `aether_dependencies.py` e `aether_reasoner.py`. Ela representa entidades, fatos tipados, propriedades, proveniência, regras determinísticas, conclusões com dependências e invalidação localizada. A sessão marca adições como `stale` até recomputação e não declara incrementalidade completa quando provas alternativas podem existir.
+A Fase 7 adiciona uma camada experimental em `aether_knowledge.py`, `aether_inference.py`, `aether_consistency.py`, `aether_dependencies.py` e `aether_reasoner.py`. Ela representa entidades, fatos tipados, propriedades, proveniência, regras determinísticas, conclusões com dependências e invalidação localizada. Inserções podem ser propagadas por agenda incremental; remoções com provas alternativas ainda requerem recomputação para garantir completude. Alterações feitas diretamente na `KnowledgeStore` depois da inferência agora invalidam a leitura de conclusões até uma recomputação.
 
 Reproduza os testes e o benchmark controlado com:
 
@@ -157,11 +173,11 @@ python3 -m unittest discover -v
 python3 phase7_bench.py --out results/phase7/knowledge_benchmark --seeds 30
 ```
 
-O benchmark separa 15 seeds de calibração e 15 holdout em cada uma de duas famílias sintéticas. Os dados são fixtures de software, não treinamento e não conhecimento aberto. Resultados, procedência, CSV e gráfico ficam em `results/phase7/knowledge_benchmark/`; o escopo e os critérios ainda pendentes estão em [`PHASE7_REPORT.md`](PHASE7_REPORT.md).
+O benchmark separa 15 seeds de calibração e 15 holdout em cada uma de duas famílias sintéticas. Os dados são fixtures de software, não treinamento e não conhecimento aberto. Resultados, procedência, CSV e gráfico ficam em `results/phase7/knowledge_benchmark/`; para os critérios e limites históricos, consulte [`PHASE7_REPORT.md`](PHASE7_REPORT.md) e leia o aviso de status deste README.
 
-### phase7new: fechamento das pendências
+### Extensão phase7new: integração auditável e validação adicional
 
-A branch `phase7new` adiciona a projeção semântica auditável do `email-Eu-core` (`aether_snap_semantic.py`), o controlador adaptativo (`aether_reasoning_controller.py`) e o índice relacional Rust end-to-end (`aether_knowledge_rust.py`). Reproduza com:
+A extensão `phase7new`, agora integrada à `main`, adiciona a projeção semântica auditável do `email-Eu-core` (`aether_snap_semantic.py`), o controlador adaptativo (`aether_reasoning_controller.py`) e o índice relacional Rust end-to-end (`aether_knowledge_rust.py`). Reproduza com:
 
 ```bash
 python3 -m unittest discover -v
@@ -170,3 +186,7 @@ python3 phase7new_rust_bench.py --queries 1000
 ```
 
 Consulte [`PHASE7NEW_REPORT.md`](PHASE7NEW_REPORT.md) e os artefatos em `results/phase7new/`. A projeção completa verifica o SHA-256 do manifesto e mantém a proveniência no `KnowledgeStore`; os benchmarks registram explicitamente quando medem uma amostra ou apenas a relação direta.
+
+## Licença
+
+O código-fonte do projeto é disponibilizado sob a licença MIT, conforme [`LICENSE`](LICENSE). Isso não altera os termos dos datasets externos: arquivos SNAP não são incluídos na distribuição e devem ser obtidos e usados conforme as condições publicadas por suas fontes.

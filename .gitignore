@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+/.coverage
+/htmlcov/
 
 # Virtual environments
 .venv/
@@ -19,6 +21,8 @@ results/phase3/**/rust_*kernel
 .vscode/
 
 /build/
+/dist/
+*.egg-info/
 **/libaether_native.so
 **/libaether_native.dylib
 **/aether_native.dll

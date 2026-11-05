@@ -4,6 +4,8 @@
 **Branch:** `phase7`
 **Base:** merge consolidado da Fase 6 em `29e0eaa`.
 
+> **Nota de versão:** este documento registra o estado intermediário da branch `phase7`. A extensão posterior foi integrada à branch `main`; para o estado consolidado mais recente, consulte [`PHASE7NEW_REPORT.md`](PHASE7NEW_REPORT.md). As pendências descritas abaixo são históricas ou continuam aplicáveis somente quando o relatório posterior assim indicar.
+
 ## Resumo executivo
 
 A Fase 7 adiciona uma camada experimental de conhecimento estruturado sobre o núcleo de grafos existente. A implementação atual representa entidades e fatos direcionados com identificadores estáveis, propriedades, proveniência opcional explícita, confiança limitada a valores fundamentados pelo chamador e índices por sujeito, predicado e objeto. Um motor determinístico aplica regras relacionais com encadeamento em múltiplas etapas, registra fatos de suporte, profundidade e regra usada, e impõe limites explícitos para operações, profundidade e conclusões.
