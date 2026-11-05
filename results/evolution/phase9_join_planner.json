@@ -1,0 +1,2686 @@
+{
+  "benchmark": "phase9_join_planner",
+  "generated_at_utc": "2026-11-05T20:37:18Z",
+  "git_head": "abd6b4bccd541819ae82f4152c982f70c55b88a2",
+  "environment": {
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "platform": "Linux-6.18.38+-aarch64-with-glibc2.39",
+    "machine": "aarch64",
+    "processor": "aarch64",
+    "cpu_count": 6,
+    "process_peak_rss_bytes": 22786048,
+    "process_peak_rss_scope": "whole benchmark process; not attributed per planner"
+  },
+  "configuration": {
+    "families": [
+      "selective_join",
+      "balanced_join"
+    ],
+    "seeds_per_family": 30,
+    "calibration_seeds_per_family": 20,
+    "holdout_seeds_per_family": 10,
+    "repeats_per_strategy": 5,
+    "inference_limits": {
+      "max_depth": 8,
+      "max_operations": 500000,
+      "max_conclusions": 50000
+    }
+  },
+  "source_sha256": "49582d875d39e4e8f6d6a25f74293229b3e21b6d9d222063ffb4a025794bfe75",
+  "summary": {
+    "selective_join": {
+      "input": {
+        "runs": 30,
+        "p50_elapsed_ns": 2679448,
+        "p95_elapsed_ns_observed": 3248703,
+        "queries_per_second_at_p50": 373.2111987245134,
+        "p50_cpu_ns": 2677518,
+        "p50_facts_examined": 1598,
+        "p95_facts_examined_observed": 1950
+      },
+      "selective": {
+        "runs": 30,
+        "p50_elapsed_ns": 1642440,
+        "p95_elapsed_ns_observed": 1973980,
+        "queries_per_second_at_p50": 608.8502471932004,
+        "p50_cpu_ns": 1640985,
+        "p50_facts_examined": 802,
+        "p95_facts_examined_observed": 978
+      },
+      "calibration": {
+        "seeds": 20,
+        "median_input_over_selective_speedup": 1.6273695073688157,
+        "median_input_over_selective_cpu_speedup": 1.627365896989279,
+        "median_examined_reduction_fraction": 0.49825496219761134,
+        "selective_latency_wins": 20,
+        "selective_latency_win_rate": 1.0
+      },
+      "holdout": {
+        "seeds": 10,
+        "median_input_over_selective_speedup": 1.6258402883471597,
+        "median_input_over_selective_cpu_speedup": 1.6266749279664616,
+        "median_examined_reduction_fraction": 0.4980834909347245,
+        "selective_latency_wins": 10,
+        "selective_latency_win_rate": 1.0
+      }
+    },
+    "balanced_join": {
+      "input": {
+        "runs": 30,
+        "p50_elapsed_ns": 27703905,
+        "p95_elapsed_ns_observed": 41950507,
+        "queries_per_second_at_p50": 36.09599440945239,
+        "p50_cpu_ns": 27700365,
+        "p50_facts_examined": 21171,
+        "p95_facts_examined_observed": 32580
+      },
+      "selective": {
+        "runs": 30,
+        "p50_elapsed_ns": 27738744,
+        "p95_elapsed_ns_observed": 41979185,
+        "queries_per_second_at_p50": 36.05065896278505,
+        "p50_cpu_ns": 27735704,
+        "p50_facts_examined": 21171,
+        "p95_facts_examined_observed": 32580
+      },
+      "calibration": {
+        "seeds": 20,
+        "median_input_over_selective_speedup": 1.0004014066270044,
+        "median_input_over_selective_cpu_speedup": 1.0006532189815758,
+        "median_examined_reduction_fraction": 0.0,
+        "selective_latency_wins": 11,
+        "selective_latency_win_rate": 0.55
+      },
+      "holdout": {
+        "seeds": 10,
+        "median_input_over_selective_speedup": 0.998021958320046,
+        "median_input_over_selective_cpu_speedup": 0.9979651531948491,
+        "median_examined_reduction_fraction": 0.0,
+        "selective_latency_wins": 2,
+        "selective_latency_win_rate": 0.2
+      }
+    }
+  },
+  "runs": [
+    {
+      "family": "selective_join",
+      "seed_index": 0,
+      "seed": 91000,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 313,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2073483,
+        "median_cpu_ns": 2070368,
+        "facts_examined": 1254,
+        "operations": 1254,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1282870,
+        "median_cpu_ns": 1281879,
+        "facts_examined": 630,
+        "operations": 630,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          313,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 1,
+      "seed": 91001,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 315,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2062464,
+        "median_cpu_ns": 2060980,
+        "facts_examined": 1262,
+        "operations": 1262,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1287220,
+        "median_cpu_ns": 1286112,
+        "facts_examined": 634,
+        "operations": 634,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          315,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 2,
+      "seed": 91002,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 361,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2402739,
+        "median_cpu_ns": 2401288,
+        "facts_examined": 1446,
+        "operations": 1446,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1468020,
+        "median_cpu_ns": 1466848,
+        "facts_examined": 726,
+        "operations": 726,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          361,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 3,
+      "seed": 91003,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 459,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3038086,
+        "median_cpu_ns": 3036275,
+        "facts_examined": 1838,
+        "operations": 1838,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1880359,
+        "median_cpu_ns": 1878893,
+        "facts_examined": 922,
+        "operations": 922,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          459,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 4,
+      "seed": 91004,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 487,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3248703,
+        "median_cpu_ns": 3246581,
+        "facts_examined": 1950,
+        "operations": 1950,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1963174,
+        "median_cpu_ns": 1961765,
+        "facts_examined": 978,
+        "operations": 978,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          487,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 5,
+      "seed": 91005,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 303,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 1991638,
+        "median_cpu_ns": 1990547,
+        "facts_examined": 1214,
+        "operations": 1214,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1238202,
+        "median_cpu_ns": 1235872,
+        "facts_examined": 610,
+        "operations": 610,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          303,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 6,
+      "seed": 91006,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 449,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2970903,
+        "median_cpu_ns": 2969404,
+        "facts_examined": 1798,
+        "operations": 1798,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1828668,
+        "median_cpu_ns": 1827290,
+        "facts_examined": 902,
+        "operations": 902,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          449,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 7,
+      "seed": 91007,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 439,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2959596,
+        "median_cpu_ns": 2957547,
+        "facts_examined": 1758,
+        "operations": 1758,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1787888,
+        "median_cpu_ns": 1786675,
+        "facts_examined": 882,
+        "operations": 882,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          439,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 8,
+      "seed": 91008,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 386,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2552524,
+        "median_cpu_ns": 2551417,
+        "facts_examined": 1546,
+        "operations": 1546,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1579133,
+        "median_cpu_ns": 1578076,
+        "facts_examined": 776,
+        "operations": 776,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          386,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 9,
+      "seed": 91009,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 473,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3190964,
+        "median_cpu_ns": 3189218,
+        "facts_examined": 1894,
+        "operations": 1894,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1928245,
+        "median_cpu_ns": 1926711,
+        "facts_examined": 950,
+        "operations": 950,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          473,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 10,
+      "seed": 91010,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 478,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3203953,
+        "median_cpu_ns": 3201018,
+        "facts_examined": 1914,
+        "operations": 1914,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1965480,
+        "median_cpu_ns": 1964176,
+        "facts_examined": 960,
+        "operations": 960,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          478,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 11,
+      "seed": 91011,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 324,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2138566,
+        "median_cpu_ns": 2137329,
+        "facts_examined": 1298,
+        "operations": 1298,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1337296,
+        "median_cpu_ns": 1336213,
+        "facts_examined": 652,
+        "operations": 652,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          324,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 12,
+      "seed": 91012,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 310,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2044101,
+        "median_cpu_ns": 2042798,
+        "facts_examined": 1242,
+        "operations": 1242,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1273377,
+        "median_cpu_ns": 1272353,
+        "facts_examined": 624,
+        "operations": 624,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          310,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 13,
+      "seed": 91013,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 439,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3014381,
+        "median_cpu_ns": 3010700,
+        "facts_examined": 1758,
+        "operations": 1758,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1808343,
+        "median_cpu_ns": 1806605,
+        "facts_examined": 882,
+        "operations": 882,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          439,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 14,
+      "seed": 91014,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 479,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3238775,
+        "median_cpu_ns": 3236176,
+        "facts_examined": 1918,
+        "operations": 1918,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1973980,
+        "median_cpu_ns": 1972521,
+        "facts_examined": 962,
+        "operations": 962,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          479,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 15,
+      "seed": 91015,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 497,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3407645,
+        "median_cpu_ns": 3405907,
+        "facts_examined": 1990,
+        "operations": 1990,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 2031564,
+        "median_cpu_ns": 2030121,
+        "facts_examined": 998,
+        "operations": 998,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          497,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 16,
+      "seed": 91016,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 420,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2828380,
+        "median_cpu_ns": 2826765,
+        "facts_examined": 1682,
+        "operations": 1682,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1733069,
+        "median_cpu_ns": 1731930,
+        "facts_examined": 844,
+        "operations": 844,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          420,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 17,
+      "seed": 91017,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 328,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2210796,
+        "median_cpu_ns": 2209485,
+        "facts_examined": 1314,
+        "operations": 1314,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1361993,
+        "median_cpu_ns": 1360796,
+        "facts_examined": 660,
+        "operations": 660,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          328,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 18,
+      "seed": 91018,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 370,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2455441,
+        "median_cpu_ns": 2453883,
+        "facts_examined": 1482,
+        "operations": 1482,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1518653,
+        "median_cpu_ns": 1516948,
+        "facts_examined": 744,
+        "operations": 744,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          370,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 19,
+      "seed": 91019,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "broad_facts": 446,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3017024,
+        "median_cpu_ns": 3014958,
+        "facts_examined": 1786,
+        "operations": 1786,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1825714,
+        "median_cpu_ns": 1824247,
+        "facts_examined": 896,
+        "operations": 896,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          446,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 20,
+      "seed": 91020,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 326,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2172298,
+        "median_cpu_ns": 2170584,
+        "facts_examined": 1306,
+        "operations": 1306,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1343219,
+        "median_cpu_ns": 1341990,
+        "facts_examined": 656,
+        "operations": 656,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          326,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 21,
+      "seed": 91021,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 480,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3243115,
+        "median_cpu_ns": 3241403,
+        "facts_examined": 1922,
+        "operations": 1922,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1962493,
+        "median_cpu_ns": 1961009,
+        "facts_examined": 964,
+        "operations": 964,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          480,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 22,
+      "seed": 91022,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 399,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2690771,
+        "median_cpu_ns": 2688484,
+        "facts_examined": 1598,
+        "operations": 1598,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1645783,
+        "median_cpu_ns": 1644431,
+        "facts_examined": 802,
+        "operations": 802,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          399,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 23,
+      "seed": 91023,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 478,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 3248367,
+        "median_cpu_ns": 3246204,
+        "facts_examined": 1914,
+        "operations": 1914,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1944433,
+        "median_cpu_ns": 1943138,
+        "facts_examined": 960,
+        "operations": 960,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          478,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 24,
+      "seed": 91024,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 357,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2392507,
+        "median_cpu_ns": 2391040,
+        "facts_examined": 1430,
+        "operations": 1430,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1482181,
+        "median_cpu_ns": 1480254,
+        "facts_examined": 718,
+        "operations": 718,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          357,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 25,
+      "seed": 91025,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 411,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2751982,
+        "median_cpu_ns": 2750441,
+        "facts_examined": 1646,
+        "operations": 1646,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1694497,
+        "median_cpu_ns": 1692316,
+        "facts_examined": 826,
+        "operations": 826,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          411,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 26,
+      "seed": 91026,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 326,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2168105,
+        "median_cpu_ns": 2166982,
+        "facts_examined": 1306,
+        "operations": 1306,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1346387,
+        "median_cpu_ns": 1345140,
+        "facts_examined": 656,
+        "operations": 656,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          326,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 27,
+      "seed": 91027,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 399,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2668125,
+        "median_cpu_ns": 2666552,
+        "facts_examined": 1598,
+        "operations": 1598,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1639097,
+        "median_cpu_ns": 1637539,
+        "facts_examined": 802,
+        "operations": 802,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          399,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 28,
+      "seed": 91028,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 373,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2490353,
+        "median_cpu_ns": 2488869,
+        "facts_examined": 1494,
+        "operations": 1494,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1530067,
+        "median_cpu_ns": 1528698,
+        "facts_examined": 750,
+        "operations": 750,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          373,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "selective_join",
+      "seed_index": 29,
+      "seed": 91029,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "broad_facts": 383,
+        "narrow_facts": 1,
+        "target_facts": 1
+      },
+      "input": {
+        "median_elapsed_ns": 2562403,
+        "median_cpu_ns": 2560763,
+        "facts_examined": 1534,
+        "operations": 1534,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 1581504,
+        "median_cpu_ns": 1580414,
+        "facts_examined": 770,
+        "operations": 770,
+        "conclusions": 1,
+        "complete": true,
+        "plan_order": [
+          1,
+          2,
+          0
+        ],
+        "plan_estimates": [
+          383,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 0,
+      "seed": 91000,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 61,
+        "p2_facts": 61,
+        "p3_facts": 61
+      },
+      "input": {
+        "median_elapsed_ns": 19900457,
+        "median_cpu_ns": 19862827,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 19847057,
+        "median_cpu_ns": 19844308,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          61,
+          61,
+          61
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 1,
+      "seed": 91001,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 61,
+        "p2_facts": 61,
+        "p3_facts": 61
+      },
+      "input": {
+        "median_elapsed_ns": 19706094,
+        "median_cpu_ns": 19704041,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 19808428,
+        "median_cpu_ns": 19805997,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          61,
+          61,
+          61
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 2,
+      "seed": 91002,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 67,
+        "p2_facts": 67,
+        "p3_facts": 67
+      },
+      "input": {
+        "median_elapsed_ns": 23753368,
+        "median_cpu_ns": 23748997,
+        "facts_examined": 18090,
+        "operations": 18090,
+        "conclusions": 67,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 23742481,
+        "median_cpu_ns": 23738962,
+        "facts_examined": 18090,
+        "operations": 18090,
+        "conclusions": 67,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          67,
+          67,
+          67
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 3,
+      "seed": 91003,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 79,
+        "p2_facts": 79,
+        "p3_facts": 79
+      },
+      "input": {
+        "median_elapsed_ns": 32551287,
+        "median_cpu_ns": 32548644,
+        "facts_examined": 25122,
+        "operations": 25122,
+        "conclusions": 79,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 32601633,
+        "median_cpu_ns": 32580184,
+        "facts_examined": 25122,
+        "operations": 25122,
+        "conclusions": 79,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          79,
+          79,
+          79
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 4,
+      "seed": 91004,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 83,
+        "p2_facts": 83,
+        "p3_facts": 83
+      },
+      "input": {
+        "median_elapsed_ns": 35750775,
+        "median_cpu_ns": 35747667,
+        "facts_examined": 27722,
+        "operations": 27722,
+        "conclusions": 83,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 35876470,
+        "median_cpu_ns": 35872575,
+        "facts_examined": 27722,
+        "operations": 27722,
+        "conclusions": 83,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          83,
+          83,
+          83
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 5,
+      "seed": 91005,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 60,
+        "p2_facts": 60,
+        "p3_facts": 60
+      },
+      "input": {
+        "median_elapsed_ns": 19357565,
+        "median_cpu_ns": 19320664,
+        "facts_examined": 14520,
+        "operations": 14520,
+        "conclusions": 60,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 19211465,
+        "median_cpu_ns": 19208887,
+        "facts_examined": 14520,
+        "operations": 14520,
+        "conclusions": 60,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          60,
+          60,
+          60
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 6,
+      "seed": 91006,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 78,
+        "p2_facts": 78,
+        "p3_facts": 78
+      },
+      "input": {
+        "median_elapsed_ns": 31942433,
+        "median_cpu_ns": 31939372,
+        "facts_examined": 24492,
+        "operations": 24492,
+        "conclusions": 78,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 31852989,
+        "median_cpu_ns": 31847253,
+        "facts_examined": 24492,
+        "operations": 24492,
+        "conclusions": 78,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          78,
+          78,
+          78
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 7,
+      "seed": 91007,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 77,
+        "p2_facts": 77,
+        "p3_facts": 77
+      },
+      "input": {
+        "median_elapsed_ns": 31035554,
+        "median_cpu_ns": 31032919,
+        "facts_examined": 23870,
+        "operations": 23870,
+        "conclusions": 77,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 31050413,
+        "median_cpu_ns": 31034690,
+        "facts_examined": 23870,
+        "operations": 23870,
+        "conclusions": 77,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          77,
+          77,
+          77
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 8,
+      "seed": 91008,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 70,
+        "p2_facts": 70,
+        "p3_facts": 70
+      },
+      "input": {
+        "median_elapsed_ns": 25979139,
+        "median_cpu_ns": 25975771,
+        "facts_examined": 19740,
+        "operations": 19740,
+        "conclusions": 70,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 25927579,
+        "median_cpu_ns": 25920812,
+        "facts_examined": 19740,
+        "operations": 19740,
+        "conclusions": 70,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          70,
+          70,
+          70
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 9,
+      "seed": 91009,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 81,
+        "p2_facts": 81,
+        "p3_facts": 81
+      },
+      "input": {
+        "median_elapsed_ns": 34360057,
+        "median_cpu_ns": 34355873,
+        "facts_examined": 26406,
+        "operations": 26406,
+        "conclusions": 81,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 34348232,
+        "median_cpu_ns": 34325539,
+        "facts_examined": 26406,
+        "operations": 26406,
+        "conclusions": 81,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          81,
+          81,
+          81
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 10,
+      "seed": 91010,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 82,
+        "p2_facts": 82,
+        "p3_facts": 82
+      },
+      "input": {
+        "median_elapsed_ns": 35058173,
+        "median_cpu_ns": 35054810,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 35137155,
+        "median_cpu_ns": 35133883,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          82,
+          82,
+          82
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 11,
+      "seed": 91011,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 62,
+        "p2_facts": 62,
+        "p3_facts": 62
+      },
+      "input": {
+        "median_elapsed_ns": 20554840,
+        "median_cpu_ns": 20552017,
+        "facts_examined": 15500,
+        "operations": 15500,
+        "conclusions": 62,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 20464944,
+        "median_cpu_ns": 20462022,
+        "facts_examined": 15500,
+        "operations": 15500,
+        "conclusions": 62,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          62,
+          62,
+          62
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 12,
+      "seed": 91012,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 61,
+        "p2_facts": 61,
+        "p3_facts": 61
+      },
+      "input": {
+        "median_elapsed_ns": 19899579,
+        "median_cpu_ns": 19896943,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 19945199,
+        "median_cpu_ns": 19911040,
+        "facts_examined": 15006,
+        "operations": 15006,
+        "conclusions": 61,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          61,
+          61,
+          61
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 13,
+      "seed": 91013,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 77,
+        "p2_facts": 77,
+        "p3_facts": 77
+      },
+      "input": {
+        "median_elapsed_ns": 31091308,
+        "median_cpu_ns": 31088279,
+        "facts_examined": 23870,
+        "operations": 23870,
+        "conclusions": 77,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 30912896,
+        "median_cpu_ns": 30910383,
+        "facts_examined": 23870,
+        "operations": 23870,
+        "conclusions": 77,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          77,
+          77,
+          77
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 14,
+      "seed": 91014,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 82,
+        "p2_facts": 82,
+        "p3_facts": 82
+      },
+      "input": {
+        "median_elapsed_ns": 34976703,
+        "median_cpu_ns": 34940972,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 35011215,
+        "median_cpu_ns": 35007720,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          82,
+          82,
+          82
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 15,
+      "seed": 91015,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 84,
+        "p2_facts": 84,
+        "p3_facts": 84
+      },
+      "input": {
+        "median_elapsed_ns": 36740961,
+        "median_cpu_ns": 36738379,
+        "facts_examined": 28392,
+        "operations": 28392,
+        "conclusions": 84,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 36868772,
+        "median_cpu_ns": 36863418,
+        "facts_examined": 28392,
+        "operations": 28392,
+        "conclusions": 84,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          84,
+          84,
+          84
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 16,
+      "seed": 91016,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 90,
+        "p2_facts": 90,
+        "p3_facts": 90
+      },
+      "input": {
+        "median_elapsed_ns": 42019307,
+        "median_cpu_ns": 42016312,
+        "facts_examined": 32580,
+        "operations": 32580,
+        "conclusions": 90,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 41979185,
+        "median_cpu_ns": 41976057,
+        "facts_examined": 32580,
+        "operations": 32580,
+        "conclusions": 90,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          90,
+          90,
+          90
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 17,
+      "seed": 91017,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 63,
+        "p2_facts": 63,
+        "p3_facts": 63
+      },
+      "input": {
+        "median_elapsed_ns": 21200189,
+        "median_cpu_ns": 21196283,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 21104755,
+        "median_cpu_ns": 21087401,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          63,
+          63,
+          63
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 18,
+      "seed": 91018,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 68,
+        "p2_facts": 68,
+        "p3_facts": 68
+      },
+      "input": {
+        "median_elapsed_ns": 24410574,
+        "median_cpu_ns": 24405948,
+        "facts_examined": 18632,
+        "operations": 18632,
+        "conclusions": 68,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 24527678,
+        "median_cpu_ns": 24506971,
+        "facts_examined": 18632,
+        "operations": 18632,
+        "conclusions": 68,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          68,
+          68,
+          68
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 19,
+      "seed": 91019,
+      "calibration_or_holdout": "calibration",
+      "workload": {
+        "p1_facts": 78,
+        "p2_facts": 78,
+        "p3_facts": 78
+      },
+      "input": {
+        "median_elapsed_ns": 31941572,
+        "median_cpu_ns": 31888534,
+        "facts_examined": 24492,
+        "operations": 24492,
+        "conclusions": 78,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 31847016,
+        "median_cpu_ns": 31827233,
+        "facts_examined": 24492,
+        "operations": 24492,
+        "conclusions": 78,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          78,
+          78,
+          78
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 20,
+      "seed": 91020,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 63,
+        "p2_facts": 63,
+        "p3_facts": 63
+      },
+      "input": {
+        "median_elapsed_ns": 21132119,
+        "median_cpu_ns": 21102188,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 21229621,
+        "median_cpu_ns": 21226560,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          63,
+          63,
+          63
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 21,
+      "seed": 91021,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 82,
+        "p2_facts": 82,
+        "p3_facts": 82
+      },
+      "input": {
+        "median_elapsed_ns": 34987502,
+        "median_cpu_ns": 34976368,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 34975219,
+        "median_cpu_ns": 34972816,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          82,
+          82,
+          82
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 22,
+      "seed": 91022,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 72,
+        "p2_facts": 72,
+        "p3_facts": 72
+      },
+      "input": {
+        "median_elapsed_ns": 27300541,
+        "median_cpu_ns": 27284530,
+        "facts_examined": 20880,
+        "operations": 20880,
+        "conclusions": 72,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 27373937,
+        "median_cpu_ns": 27340283,
+        "facts_examined": 20880,
+        "operations": 20880,
+        "conclusions": 72,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          72,
+          72,
+          72
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 23,
+      "seed": 91023,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 82,
+        "p2_facts": 82,
+        "p3_facts": 82
+      },
+      "input": {
+        "median_elapsed_ns": 35096679,
+        "median_cpu_ns": 35069776,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 35155091,
+        "median_cpu_ns": 35151582,
+        "facts_examined": 27060,
+        "operations": 27060,
+        "conclusions": 82,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          82,
+          82,
+          82
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 24,
+      "seed": 91024,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 67,
+        "p2_facts": 67,
+        "p3_facts": 67
+      },
+      "input": {
+        "median_elapsed_ns": 23663761,
+        "median_cpu_ns": 23635077,
+        "facts_examined": 18090,
+        "operations": 18090,
+        "conclusions": 67,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 23919366,
+        "median_cpu_ns": 23887532,
+        "facts_examined": 18090,
+        "operations": 18090,
+        "conclusions": 67,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          67,
+          67,
+          67
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 25,
+      "seed": 91025,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 73,
+        "p2_facts": 73,
+        "p3_facts": 73
+      },
+      "input": {
+        "median_elapsed_ns": 28066654,
+        "median_cpu_ns": 28062671,
+        "facts_examined": 21462,
+        "operations": 21462,
+        "conclusions": 73,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 28081661,
+        "median_cpu_ns": 28077727,
+        "facts_examined": 21462,
+        "operations": 21462,
+        "conclusions": 73,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          73,
+          73,
+          73
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 26,
+      "seed": 91026,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 63,
+        "p2_facts": 63,
+        "p3_facts": 63
+      },
+      "input": {
+        "median_elapsed_ns": 21137264,
+        "median_cpu_ns": 21104378,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 21236899,
+        "median_cpu_ns": 21233305,
+        "facts_examined": 16002,
+        "operations": 16002,
+        "conclusions": 63,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          63,
+          63,
+          63
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 27,
+      "seed": 91027,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 72,
+        "p2_facts": 72,
+        "p3_facts": 72
+      },
+      "input": {
+        "median_elapsed_ns": 27341157,
+        "median_cpu_ns": 27338060,
+        "facts_examined": 20880,
+        "operations": 20880,
+        "conclusions": 72,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 27395828,
+        "median_cpu_ns": 27393682,
+        "facts_examined": 20880,
+        "operations": 20880,
+        "conclusions": 72,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          72,
+          72,
+          72
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 28,
+      "seed": 91028,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 69,
+        "p2_facts": 69,
+        "p3_facts": 69
+      },
+      "input": {
+        "median_elapsed_ns": 25239948,
+        "median_cpu_ns": 25220825,
+        "facts_examined": 19182,
+        "operations": 19182,
+        "conclusions": 69,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 25221314,
+        "median_cpu_ns": 25216000,
+        "facts_examined": 19182,
+        "operations": 19182,
+        "conclusions": 69,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          69,
+          69,
+          69
+        ]
+      }
+    },
+    {
+      "family": "balanced_join",
+      "seed_index": 29,
+      "seed": 91029,
+      "calibration_or_holdout": "holdout",
+      "workload": {
+        "p1_facts": 90,
+        "p2_facts": 90,
+        "p3_facts": 90
+      },
+      "input": {
+        "median_elapsed_ns": 41950507,
+        "median_cpu_ns": 41946265,
+        "facts_examined": 32580,
+        "operations": 32580,
+        "conclusions": 90,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": []
+      },
+      "selective": {
+        "median_elapsed_ns": 42032912,
+        "median_cpu_ns": 42030022,
+        "facts_examined": 32580,
+        "operations": 32580,
+        "conclusions": 90,
+        "complete": true,
+        "plan_order": [
+          0,
+          1,
+          2
+        ],
+        "plan_estimates": [
+          90,
+          90,
+          90
+        ]
+      }
+    }
+  ]
+}

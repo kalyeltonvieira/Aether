@@ -230,13 +230,31 @@ class QueryResult:
     next_offset: int | None = None
 
 
+@dataclass(frozen=True)
+class JoinPlan:
+    rule_id: str
+    mode: str
+    order: tuple[int, ...]
+    candidate_estimates: tuple[int, ...]
+
+
 class InferenceEngine:
     """Forward chaining with alternative proof records and bounded open queries."""
 
-    def __init__(self, store: KnowledgeStore, rules: tuple[Rule, ...] | list[Rule] = ()) -> None:
+    def __init__(
+        self,
+        store: KnowledgeStore,
+        rules: tuple[Rule, ...] | list[Rule] = (),
+        *,
+        join_planner: str = "input",
+    ) -> None:
         if not isinstance(store, KnowledgeStore):
             raise TypeError("store must be a KnowledgeStore")
+        if join_planner not in {"input", "selective"}:
+            raise ValueError("join_planner must be 'input' or 'selective'")
         self.store = store
+        self.join_planner = join_planner
+        self.last_join_plan: JoinPlan | None = None
         self._rules: list[Rule] = []
         self._rule_ids: set[str] = set()
         self.rules_version = 0
@@ -337,21 +355,101 @@ class InferenceEngine:
             return value
         return resolve(pattern.subject), pattern.predicate, resolve(pattern.object)
 
-    def _known_by_predicate(self, derived: Mapping[FactIdentity, DerivedFact]):
+    def _known_by_predicate(
+        self,
+        derived: Mapping[FactIdentity, DerivedFact],
+        *,
+        count_predicates: set[str] | None = None,
+    ):
         grouped: dict[str, list[tuple[tuple[str, str, Scalar], int | tuple[str, str, Scalar]]]] = {}
+        by_subject: dict[tuple[str, str], int] = {}
+        by_object: dict[tuple[str, object], int] = {}
+        by_pair: dict[tuple[str, str, object], int] = {}
         for fact in self.store.query():
             key = fact.key
             grouped.setdefault(fact.predicate, []).append((key, fact.fact_id))
+            if count_predicates is not None and fact.predicate in count_predicates:
+                by_subject[(fact.predicate, fact.subject)] = by_subject.get((fact.predicate, fact.subject), 0) + 1
+                object_id = scalar_identity(fact.object)
+                by_object[(fact.predicate, object_id)] = by_object.get((fact.predicate, object_id), 0) + 1
+                by_pair[(fact.predicate, fact.subject, object_id)] = by_pair.get(
+                    (fact.predicate, fact.subject, object_id), 0
+                ) + 1
         for fact in derived.values():
             key = fact.key
             grouped.setdefault(fact.predicate, []).append((key, key))
-        return grouped
+            if count_predicates is not None and fact.predicate in count_predicates:
+                by_subject[(fact.predicate, fact.subject)] = by_subject.get((fact.predicate, fact.subject), 0) + 1
+                object_id = scalar_identity(fact.object)
+                by_object[(fact.predicate, object_id)] = by_object.get((fact.predicate, object_id), 0) + 1
+                by_pair[(fact.predicate, fact.subject, object_id)] = by_pair.get(
+                    (fact.predicate, fact.subject, object_id), 0
+                ) + 1
+        return grouped, by_subject, by_object, by_pair
+
+    @staticmethod
+    def _estimate_pattern(
+        pattern: Pattern,
+        by_predicate: Mapping[str, list],
+        by_subject: Mapping[tuple[str, str], int],
+        by_object: Mapping[tuple[str, object], int],
+        by_pair: Mapping[tuple[str, str, object], int],
+    ) -> int:
+        subject_is_variable = isinstance(pattern.subject, str) and pattern.subject.startswith("?")
+        object_is_variable = isinstance(pattern.object, str) and pattern.object.startswith("?")
+        if not subject_is_variable and not object_is_variable:
+            return by_pair.get(
+                (pattern.predicate, pattern.subject, scalar_identity(pattern.object)), 0
+            )
+        if not subject_is_variable:
+            return by_subject.get((pattern.predicate, pattern.subject), 0)
+        if not object_is_variable:
+            return by_object.get((pattern.predicate, scalar_identity(pattern.object)), 0)
+        return len(by_predicate.get(pattern.predicate, ()))
 
     def _join_rule(self, rule: Rule, derived):
-        grouped = self._known_by_predicate(derived)
-        partials: list[tuple[dict[str, Scalar], tuple[int | tuple[str, str, Scalar], ...]]] = [({}, ())]
+        selective = self.join_planner == "selective"
+        count_predicates = None
+        if selective:
+            count_predicates = {
+                pattern.predicate
+                for pattern in rule.antecedents
+                if not (isinstance(pattern.subject, str) and pattern.subject.startswith("?"))
+                or not (isinstance(pattern.object, str) and pattern.object.startswith("?"))
+            }
+        grouped, by_subject, by_object, by_pair = self._known_by_predicate(
+            derived, count_predicates=count_predicates
+        )
+        estimates = tuple(
+            self._estimate_pattern(pattern, grouped, by_subject, by_object, by_pair)
+            for pattern in rule.antecedents
+        ) if selective else ()
+        order = tuple(range(len(rule.antecedents)))
+        if selective:
+            order = tuple(sorted(order, key=lambda index: (estimates[index], index)))
+        self.last_join_plan = JoinPlan(rule.rule_id, self.join_planner, order, estimates)
+
+        if order == tuple(range(len(rule.antecedents))):
+            partials: list[tuple[dict[str, Scalar], tuple[int | tuple[str, str, Scalar], ...]]] = [({}, ())]
+            examined = 0
+            for pattern in rule.antecedents:
+                next_partials = []
+                candidates = grouped.get(pattern.predicate, [])
+                for bindings, supports in partials:
+                    for fact_key, support in candidates:
+                        examined += 1
+                        next_bindings = self._match_pattern(fact_key, pattern, bindings)
+                        if next_bindings is not None:
+                            next_partials.append((next_bindings, supports + (support,)))
+                partials = next_partials
+                if not partials:
+                    break
+            return partials, examined
+
+        partials: list[tuple[dict[str, Scalar], dict[int, int | tuple[str, str, Scalar]]]] = [({}, {})]
         examined = 0
-        for pattern in rule.antecedents:
+        for pattern_index in order:
+            pattern = rule.antecedents[pattern_index]
             next_partials = []
             candidates = grouped.get(pattern.predicate, [])
             for bindings, supports in partials:
@@ -359,11 +457,21 @@ class InferenceEngine:
                     examined += 1
                     next_bindings = self._match_pattern(fact_key, pattern, bindings)
                     if next_bindings is not None:
-                        next_partials.append((next_bindings, supports + (support,)))
+                        next_supports = dict(supports)
+                        next_supports[pattern_index] = support
+                        next_partials.append((next_bindings, next_supports))
             partials = next_partials
             if not partials:
                 break
-        return partials, examined
+        ordered_partials = [
+            (bindings, tuple(supports[index] for index in range(len(rule.antecedents))))
+            for bindings, supports in partials
+        ]
+        ordered_partials.sort(key=lambda item: (
+            tuple((name, scalar_identity(value)) for name, value in sorted(item[0].items())),
+            tuple(_support_identity(support) for support in item[1]),
+        ))
+        return ordered_partials, examined
 
     @staticmethod
     def _dedupe_proofs(proofs: list[DerivationProof]) -> tuple[DerivationProof, ...]:

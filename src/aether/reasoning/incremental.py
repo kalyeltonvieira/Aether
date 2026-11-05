@@ -33,9 +33,16 @@ class IncrementalInference:
     are counted; the agenda is incremental but does not claim O(1) maintenance.
     """
 
-    def __init__(self, store: KnowledgeStore, rules: tuple[Rule, ...] | list[Rule] = ()) -> None:
+    def __init__(
+        self,
+        store: KnowledgeStore,
+        rules: tuple[Rule, ...] | list[Rule] = (),
+        *,
+        join_planner: str = "input",
+    ) -> None:
         self.store = store
-        self.engine = InferenceEngine(store, rules)
+        self.engine = InferenceEngine(store, rules, join_planner=join_planner)
+        self.join_planner = self.engine.join_planner
         self.rules = self.engine.rules
         self.limits = InferenceLimits()
         self._derived: dict[FactIdentity, DerivedFact] = {}

@@ -76,6 +76,7 @@ class AdaptiveReasoningController:
         max_query_results: int = 1000,
         index_build_ns: int = 0,
         maintenance_cost_ns: int = 0,
+        join_planner: str = "input",
     ) -> None:
         if not isinstance(store, KnowledgeStore):
             raise TypeError("store must be a KnowledgeStore")
@@ -95,6 +96,9 @@ class AdaptiveReasoningController:
         self.backward_limits = backward_limits or BackwardLimits()
         self.forward_limits = forward_limits or InferenceLimits()
         self.max_query_results = max_query_results
+        if join_planner not in {"input", "selective"}:
+            raise ValueError("join_planner must be 'input' or 'selective'")
+        self.join_planner = join_planner
         self.index_build_ns = index_build_ns
         self._maintenance_cost_ns = maintenance_cost_ns
         self._ema_ns: dict[str, float] = {}
@@ -305,12 +309,16 @@ class AdaptiveReasoningController:
         if strategy == "hybrid":
             if not pattern.is_ground:
                 raise ValueError("hybrid proof requires a ground goal; use forward query for bindings")
-            result = HybridInference(self.store, self.rules).prove(
+            result = HybridInference(
+                self.store, self.rules, join_planner=self.join_planner
+            ).prove(
                 goal, backward_limits=self.backward_limits, forward_limits=self.forward_limits
             )
             return result.proven, result.complete, result.operations, result.stop_reason, (), None, None
         if strategy == "forward":
-            result = InferenceEngine(self.store, self.rules).query(
+            result = InferenceEngine(
+                self.store, self.rules, join_planner=self.join_planner
+            ).query(
                 pattern, self.forward_limits, max_results=self.max_query_results
             )
             return (

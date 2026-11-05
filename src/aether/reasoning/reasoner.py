@@ -34,10 +34,19 @@ class KnowledgeReasoner:
     fresh full inference.
     """
 
-    def __init__(self, store: KnowledgeStore, rules: tuple[Rule, ...] | list[Rule] = ()) -> None:
+    def __init__(
+        self,
+        store: KnowledgeStore,
+        rules: tuple[Rule, ...] | list[Rule] = (),
+        *,
+        join_planner: str = "input",
+    ) -> None:
         self.store = store
-        self.engine = InferenceEngine(store, rules)
-        self._incremental = IncrementalInference(store, self.engine.rules)
+        self.engine = InferenceEngine(store, rules, join_planner=join_planner)
+        self.join_planner = self.engine.join_planner
+        self._incremental = IncrementalInference(
+            store, self.engine.rules, join_planner=self.join_planner
+        )
         self._state: ReasonerState | None = None
         self._tracker: DependencyTracker | None = None
 
@@ -111,7 +120,9 @@ class KnowledgeReasoner:
         return revised
 
     def recompute(self, limits: InferenceLimits | None = None) -> ReasonerState:
-        self._incremental = IncrementalInference(self.store, self.engine.rules)
+        self._incremental = IncrementalInference(
+            self.store, self.engine.rules, join_planner=self.join_planner
+        )
         result = self._incremental.initialize(limits)
         self._tracker = DependencyTracker(result)
         self._state = ReasonerState(

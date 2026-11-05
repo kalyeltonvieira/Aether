@@ -14,6 +14,8 @@ As evidências e a confiança declarada não são probabilidades calibradas. A a
 
 `InferenceEngine.explain_all()` percorre as provas alternativas e evidencia as proveniências de cada fato explícito de suporte. O campo legado `ExplanationNode.provenance` permanece disponível; `provenances` contém todas as fontes. Avaliações de consistência distinguem conhecimento explícito, derivado, desconhecido, contradito e evidência insuficiente.
 
+O join planner aceita `join_planner="input"` (ordem declarada da regra, padrão) ou `"selective"` (ordena por estimativa de cardinalidade do predicado/constantes e mantém a ordem semântica dos suportes na prova). A opção propaga-se por `KnowledgeReasoner`, inferência incremental, fallback híbrido e consultas forward do controller. O padrão continua `input`: o benchmark com holdout indica ganho no workload seletivo e quase empate no balanceado; detalhes e limites estão em [Eficiência](EFFICIENCY.md), com [medições brutas](../../results/evolution/phase9_join_planner.json).
+
 ## Consultas abertas e paginação
 
 Uma consulta é expressa por `Pattern`, por exemplo:
@@ -34,4 +36,4 @@ Offsets são páginas por deslocamento, não cursores vinculados criptograficame
 
 ## Limites conhecidos
 
-O core é relacional e simbólico, não uma interface de linguagem natural. `KnowledgeStore` ainda é em memória; persistência semântica, histórico durável de alterações e sincronização transacional com o Event Engine permanecem tarefas separadas. O backward chaining retorna uma prova singular; a coleção completa de provas alternativas é garantida no resultado forward e nas explicações derivadas desse resultado. A API pública do Studio deverá expor completude e limites, sem converter truncamento em resultado completo.
+O core é relacional e simbólico, não uma interface de linguagem natural. `KnowledgeStore.save/load` preserva estado explícito e histórico retido em snapshot atômico com checksum; regras de inferência não estão incluídas nesse snapshot e devem ser carregadas separadamente pela aplicação. O snapshot de conhecimento e a fila do Event Engine não formam uma transação distribuída. O backward chaining retorna uma prova singular; a coleção completa de provas alternativas é garantida no resultado forward e nas explicações derivadas desse resultado. A API pública do Studio deverá expor completude e limites, sem converter truncamento em resultado completo.

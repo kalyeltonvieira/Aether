@@ -19,9 +19,18 @@ class HybridResult:
 
 
 class HybridInference:
-    def __init__(self, store: KnowledgeStore, rules: tuple[Rule, ...] | list[Rule] = ()) -> None:
+    def __init__(
+        self,
+        store: KnowledgeStore,
+        rules: tuple[Rule, ...] | list[Rule] = (),
+        *,
+        join_planner: str = "input",
+    ) -> None:
         self.store = store
         self.rules = tuple(rules)
+        if join_planner not in {"input", "selective"}:
+            raise ValueError("join_planner must be 'input' or 'selective'")
+        self.join_planner = join_planner
 
     def prove(
         self,
@@ -35,7 +44,9 @@ class HybridInference:
             return HybridResult(goal, True, backward.complete, "backward", backward.operations)
         if not backward.complete and backward.stop_reason in {"max_depth", "max_operations"}:
             return HybridResult(goal, False, False, "backward_limited", backward.operations, backward.stop_reason)
-        forward = InferenceEngine(self.store, self.rules).infer(forward_limits)
+        forward = InferenceEngine(
+            self.store, self.rules, join_planner=self.join_planner
+        ).infer(forward_limits)
         found = forward.by_key(goal) is not None
         return HybridResult(
             goal,
