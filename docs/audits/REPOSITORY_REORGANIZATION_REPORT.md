@@ -46,13 +46,13 @@ These checks were executed on the current Linux sandbox; they do not substitute 
 
 ## Branch separation and publication status
 
-The architecture branch was created from `main` at `a50b265d187041f0491fdfad2b7c92ddd691fefb`. At the final pre-publication audit, `origin/phase8` pointed to `2f46a0c4b0702419f8a0b2ed9a272ffdaa51b374`, a distinct commit. Phase 8 is the reasoning/identity/proof-tracking implementation; this branch is the repository layout, packaging, portability, documentation, and CI reorganization. The phase8 ref is not modified by this migration.
+The architecture branch was created from `main` at `a50b265d187041f0491fdfad2b7c92ddd691fefb` and published at `1b96dc581beb464d659e7b99a3794772b0fae84d`. At publication, `origin/phase8` pointed to `2f46a0c4b0702419f8a0b2ed9a272ffdaa51b374`, seven commits ahead of `main`; it is a distinct ref. Phase 8 contains the reasoning/identity/proof-tracking implementation; this architecture branch contains the repository layout, packaging, portability, documentation, and CI reorganization and intentionally does not cherry-pick or merge the Phase 8 feature commits. Neither branch ref was rewritten by this migration.
 
-**Remote CI status:** pending publication and execution. Update this section after pushing with the GitHub Actions run URL and the result of each of the nine Linux/macOS/Windows matrix jobs. Do not describe Windows compatibility as CI-verified until the Windows jobs pass.
+**Remote CI status:** pushed; run [42095525749](https://github.com/kalyeltonvieira/Aether/actions/runs/42095525749) was still queued at the time of this report update. The workflow defines nine combinations: Linux, macOS, and Windows on Python 3.10, 3.12, and 3.13. Do not describe Windows compatibility as CI-verified until all Windows jobs pass.
 
 ## Known limitations
 
 - Linux ARM64 was not a CI matrix target in the audited workflow; no ARM64-specific compatibility claim is made.
 - Full SNAP datasets are external and are not bundled. Reproducing real-data benchmarks requires fetching the manifest-listed data and checking their recorded hashes.
 - Legacy shims are intentionally retained for compatibility and can be deprecated only through a separately announced transition.
-- Actual remote CI results are not available until the branch is pushed and Actions finishes.
+- Remote CI has not yet completed; check the linked Actions run for its final per-platform result.
