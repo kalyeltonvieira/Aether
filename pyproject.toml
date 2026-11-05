@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aether-knowledge-prototype"
+version = "0.1.0"
+description = "Protótipo de grafos dinâmicos e raciocínio relacional estruturado"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+[project.optional-dependencies]
+plots = ["matplotlib>=3.8", "numpy>=1.26"]
+networkx = ["networkx>=3.2"]
+
+[project.urls]
+Repository = "https://github.com/kalyeltonvieira/Aether"
+Issues = "https://github.com/kalyeltonvieira/Aether/issues"
+
+[tool.setuptools]
+py-modules = [
+  "aether_adaptive_controller",
+  "aether_adaptive_memory",
+  "aether_backward",
+  "aether_cache",
+  "aether_checkpoints",
+  "aether_components",
+  "aether_consistency",
+  "aether_dependencies",
+  "aether_dynamic",
+  "aether_engine",
+  "aether_hybrid",
+  "aether_incremental",
+  "aether_incremental_components",
+  "aether_inference",
+  "aether_knowledge",
+  "aether_knowledge_rust",
+  "aether_native",
+  "aether_parallel",
+  "aether_pattern",
+  "aether_reasoner",
+  "aether_reasoning_controller",
+  "aether_snap_semantic",
+  "aether_temporal",
+]

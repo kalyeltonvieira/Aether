@@ -32,6 +32,22 @@ class ConsistencyValidatorTests(unittest.TestCase):
         self.assertIn("forbidden_cycle", {issue.code for issue in report.issues})
         self.assertEqual(len(self.store.query(predicate="depends_on")), 2)
 
+    def test_deep_cycle_detection_does_not_use_python_recursion(self):
+        store = KnowledgeStore()
+        source = Provenance("deep-fixture")
+        count = 1200
+        nodes = [f"node-{index}" for index in range(count)]
+        for node in nodes:
+            store.add_entity(node)
+        for index in range(count - 1):
+            store.add_fact(nodes[index], "depends_on", nodes[index + 1], provenance=source)
+        store.add_fact(nodes[-1], "depends_on", nodes[0], provenance=source)
+
+        report = ConsistencyValidator(store).validate(acyclic_predicates=("depends_on",))
+        cycle_issues = [issue for issue in report.issues if issue.code == "forbidden_cycle"]
+        self.assertEqual(len(cycle_issues), 1)
+        self.assertEqual(len(cycle_issues[0].facts), count)
+
     def test_contradictory_rules_are_reported(self):
         first = Rule("r1", (Pattern("?x", "p", "?y"),), Pattern("?x", "q", "?y"))
         second = Rule("r2", (Pattern("?x", "p", "?y"),), Pattern("?x", "not_q", "?y"))
