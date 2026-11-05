@@ -49,7 +49,7 @@ These checks were executed on the current Linux sandbox; the remote CI matrix re
 
 The architecture branch originated at `main` commit `a50b265d187041f0491fdfad2b7c92ddd691fefb`. PR #9 later merged Phase 8 into `main` at `31b73e2533dcb668c6d1849fc304bdee7ecd432c`, which is now the integration base for resolving PR #10. The architecture branch combines that mainline functionality with the repository layout, packaging, portability, documentation, and CI reorganization. The separate `phase8` branch remains unchanged; branch-specific commits are preserved and the architecture PR resolves against the updated base rather than rewriting either ref.
 
-**Remote CI status:** run [42095865154](https://github.com/kalyeltonvieira/Aether/actions/runs/42095865154) passed **9/9 jobs** on the pre-merge architecture code, including all three Windows jobs. Because this conflict resolution incorporates the Phase 8 updates from current `main`, that earlier green run is not the final validation for the merged tree. The post-resolution CI result must be recorded after pushing the merge-resolution commit; do not treat the prior run as proof for the updated branch.
+**Remote CI status:** the merge-resolution commit `4c473285b7e07d8a36019a61597a3e836b6c66bb` passed **9/9 jobs** in both the [push run 42097835244](https://github.com/kalyeltonvieira/Aether/actions/runs/42097835244) and the [pull-request run 42097844976](https://github.com/kalyeltonvieira/Aether/actions/runs/42097844976), including all six Windows/macOS Python 3.10–3.13 combinations and the three Linux jobs. The CI covers Linux, macOS, and Windows on Python 3.10, 3.12, and 3.13.
 
 ## Known limitations
 
