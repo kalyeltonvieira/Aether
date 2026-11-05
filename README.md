@@ -158,3 +158,15 @@ python3 phase7_bench.py --out results/phase7/knowledge_benchmark --seeds 30
 ```
 
 O benchmark separa 15 seeds de calibração e 15 holdout em cada uma de duas famílias sintéticas. Os dados são fixtures de software, não treinamento e não conhecimento aberto. Resultados, procedência, CSV e gráfico ficam em `results/phase7/knowledge_benchmark/`; o escopo e os critérios ainda pendentes estão em [`PHASE7_REPORT.md`](PHASE7_REPORT.md).
+
+### phase7new: fechamento das pendências
+
+A branch `phase7new` adiciona a projeção semântica auditável do `email-Eu-core` (`aether_snap_semantic.py`), o controlador adaptativo (`aether_reasoning_controller.py`) e o índice relacional Rust end-to-end (`aether_knowledge_rust.py`). Reproduza com:
+
+```bash
+python3 -m unittest discover -v
+python3 phase7new_controller_bench.py --seeds 30 --max-facts 1000
+python3 phase7new_rust_bench.py --queries 1000
+```
+
+Consulte [`PHASE7NEW_REPORT.md`](PHASE7NEW_REPORT.md) e os artefatos em `results/phase7new/`. A projeção completa verifica o SHA-256 do manifesto e mantém a proveniência no `KnowledgeStore`; os benchmarks registram explicitamente quando medem uma amostra ou apenas a relação direta.

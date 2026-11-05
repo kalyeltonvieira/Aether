@@ -1,0 +1,2 @@
+dataset,facts,entities,queries,python_query_ms,rust_query_ms,conversion_ms,rust_build_ms,exact_answers_match
+email-eu-core,25571,1005,1000,11.236408,1.640964,29.912784,17.734207,True

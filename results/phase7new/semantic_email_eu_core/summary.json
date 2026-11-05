@@ -1,0 +1,30 @@
+{
+  "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+  "predicate_semantics": "u sent_email_to v iff the SNAP edge list contains the directed pair u v; no reverse edge or inferred meaning is added.",
+  "semantic_load": {
+    "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+    "comment_lines": 0,
+    "dataset_id": "email-eu-core",
+    "duplicate_records": 0,
+    "edge_records": 25571,
+    "malformed_lines": [],
+    "node_count": 1005,
+    "predicate": "sent_email_to",
+    "source_url": "https://snap.stanford.edu/data/email-Eu-core.html",
+    "unique_facts": 25571
+  },
+  "source_urls": [
+    "https://snap.stanford.edu/data/email-Eu-core.html",
+    "https://snap.stanford.edu/data/email-Eu-core.txt.gz",
+    "https://snap.stanford.edu/data/index.html",
+    "https://snap.stanford.edu/snap/license.html"
+  ],
+  "stats": {
+    "entities": 1005,
+    "facts": 25571,
+    "object_index_keys": 991,
+    "predicate_index_keys": 1,
+    "subject_index_keys": 868,
+    "version": 26576
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "dataset": {
+    "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+    "comment_lines": 0,
+    "dataset_id": "email-eu-core",
+    "duplicate_records": 0,
+    "edge_records": 25571,
+    "malformed_lines": [],
+    "node_count": 1005,
+    "predicate": "sent_email_to",
+    "source_url": "https://snap.stanford.edu/data/email-Eu-core.html",
+    "unique_facts": 25571
+  },
+  "limitations": [
+    "Rust stores only dense relation edges; fact provenance and properties remain in Python.",
+    "This benchmark measures direct relation lookup, not symbolic rule inference in Rust.",
+    "Single local dataset and query batch; it is an end-to-end integration check, not a universal speed claim."
+  ],
+  "measurement": {
+    "conversion_ms": 29.912784,
+    "dataset": "email-eu-core",
+    "entities": 1005,
+    "exact_answers_match": true,
+    "facts": 25571,
+    "python_query_ms": 11.236408,
+    "queries": 1000,
+    "rust_build_ms": 17.734207,
+    "rust_query_ms": 1.640964
+  },
+  "provenance_preserved_in_python": true,
+  "rust_backend": "existing ABI v2 RustDynamicGraph"
+}
