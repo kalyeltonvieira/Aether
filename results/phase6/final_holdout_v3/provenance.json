@@ -1,0 +1,102 @@
+[
+  {
+    "id": "email-eu-core",
+    "name": "email-Eu-core",
+    "snap_page": "https://snap.stanford.edu/data/email-Eu-core.html",
+    "download_url": "https://snap.stanford.edu/data/email-Eu-core.txt.gz",
+    "manifest_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+    "observed_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+    "manifest_license_or_terms": "Não foi localizada licença/termos específicos para os dados email-Eu-core nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+    "local_path": "data/phase5_snap/email-eu-core/email-Eu-core.txt.gz",
+    "sample": {
+      "archive_sha256": "4b47acdb80197b085fe63c819c357ae488131ee904ed93d1b219a68b0f9e245f",
+      "archive_size_bytes": 79754,
+      "sample_raw_records": 900,
+      "sample_unique_directed_edges": 900,
+      "sample_nodes": 459,
+      "sample_limit": 900,
+      "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+      "temporal_fields_read": false
+    }
+  },
+  {
+    "id": "wiki-vote",
+    "name": "wiki-Vote — Wikipedia vote network",
+    "snap_page": "https://snap.stanford.edu/data/wiki-Vote.html",
+    "download_url": "https://snap.stanford.edu/data/wiki-Vote.txt.gz",
+    "manifest_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+    "observed_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+    "manifest_license_or_terms": "Não foi localizada licença/termos específicos para wiki-Vote nas fontes oficiais consultadas. A BSD é do software SNAP e não foi atribuída aos dados.",
+    "local_path": "data/phase5_snap/wiki-vote/wiki-Vote.txt.gz",
+    "sample": {
+      "archive_sha256": "7d3e53626e14b8b09fb3b396bece9d481ad606bd64ceab066349ff57d4ada7fc",
+      "archive_size_bytes": 290339,
+      "sample_raw_records": 900,
+      "sample_unique_directed_edges": 900,
+      "sample_nodes": 414,
+      "sample_limit": 900,
+      "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+      "temporal_fields_read": false
+    }
+  },
+  {
+    "id": "soc-epinions1",
+    "name": "soc-Epinions1 — Epinions social network",
+    "snap_page": "https://snap.stanford.edu/data/soc-Epinions1.html",
+    "download_url": "https://snap.stanford.edu/data/soc-Epinions1.txt.gz",
+    "manifest_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+    "observed_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+    "manifest_license_or_terms": "Não foi localizada licença/termos específicos para soc-Epinions1. O SNAP BSD aplica-se ao software; não foi atribuída aos dados.",
+    "local_path": "data/phase5_snap/soc-epinions1/soc-Epinions1.txt.gz",
+    "sample": {
+      "archive_sha256": "69a2dab71fa5e3a0715487599fc16ca17ddc847379325a6c765bbad6e3e36938",
+      "archive_size_bytes": 1630437,
+      "sample_raw_records": 900,
+      "sample_unique_directed_edges": 900,
+      "sample_nodes": 477,
+      "sample_limit": 900,
+      "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+      "temporal_fields_read": false
+    }
+  },
+  {
+    "id": "web-google",
+    "name": "web-Google — Google web graph",
+    "snap_page": "https://snap.stanford.edu/data/web-Google.html",
+    "download_url": "https://snap.stanford.edu/data/web-Google.txt.gz",
+    "manifest_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+    "observed_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+    "manifest_license_or_terms": "Não foi localizada licença/termos específicos para o dataset web-Google. A BSD encontrada licencia o software SNAP, não os dados.",
+    "local_path": "data/phase5_snap/web-google/web-Google.txt.gz",
+    "sample": {
+      "archive_sha256": "bcac0af0471d749f4a8c010bca92b61cf2868a0570741de06892fc062f265ea6",
+      "archive_size_bytes": 21168784,
+      "sample_raw_records": 900,
+      "sample_unique_directed_edges": 900,
+      "sample_nodes": 393,
+      "sample_limit": 900,
+      "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+      "temporal_fields_read": false
+    }
+  },
+  {
+    "id": "sx-askubuntu",
+    "name": "sx-askubuntu — temporal Ask Ubuntu network",
+    "snap_page": "https://snap.stanford.edu/data/sx-askubuntu.html",
+    "download_url": "https://snap.stanford.edu/data/sx-askubuntu.txt.gz",
+    "manifest_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+    "observed_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+    "manifest_license_or_terms": "Não foi localizada licença/termos específicos para sx-askubuntu. A BSD é para o software SNAP e não foi atribuída aos dados.",
+    "local_path": "data/phase5_snap/sx-askubuntu/sx-askubuntu.txt.gz",
+    "sample": {
+      "archive_sha256": "54af4be03bf77030e8894e445679c4e20614f0b82d68fc8cb49431f70e07a0f6",
+      "archive_size_bytes": 7385842,
+      "sample_raw_records": 900,
+      "sample_unique_directed_edges": 795,
+      "sample_nodes": 300,
+      "sample_limit": 900,
+      "sampling": "deterministic prefix of official local archive, dense remapping, undirected expansion where manifest requires",
+      "temporal_fields_read": true
+    }
+  }
+]
