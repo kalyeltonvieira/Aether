@@ -42,6 +42,16 @@ class RustDynamicGraphTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if sys.platform == "win32" and getattr(cls, "lib", None) is not None:
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.FreeLibrary.argtypes = [ctypes.c_void_p]
+            kernel32.FreeLibrary.restype = ctypes.c_int
+            handle = cls.lib._handle
+            if not kernel32.FreeLibrary(handle):
+                raise ctypes.WinError(ctypes.get_last_error())
+            # Prevent ctypes from releasing the same HMODULE a second time.
+            cls.lib._handle = 0
+            cls.lib = None
         if hasattr(cls, "tmp"):
             cls.tmp.cleanup()
 

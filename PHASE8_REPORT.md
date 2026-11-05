@@ -106,11 +106,11 @@ Medianas observadas por consulta holdout para trabalho e memória/manutenção (
 
 ## 5. Estado da matriz CI e pendências
 
-**CI remota:** pendente neste relatório; não foi executada localmente em Windows/macOS. Após publicar a branch, registrar os nove jobs efetivamente concluídos. Não declarar Windows validado por causa dos testes Linux.
+**Primeira CI remota:** [run 42086731767](https://github.com/kalyeltonvieira/Aether/actions/runs/42086731767) terminou com falha global. Linux passou em Python 3.10, 3.12 e 3.13 (3/3); macOS passou em Python 3.10 e 3.13 (2/3), enquanto Python 3.12 foi cancelado ao atingir o limite de 15 minutos do runner; Windows falhou em Python 3.10, 3.12 e 3.13 (0/3). As três falhas Windows tinham a mesma causa: a DLL Rust continuava carregada por uma referência ctypes após liberar o grafo, e os `TemporaryDirectory` de `test_aether_native`/`test_phase5_bench` não conseguiam apagá-la (`PermissionError`). A correção subsequente faz `RustDynamicGraph.close()` liberar a referência ctypes e descarrega a handle explícita da fixture antes de cleanup; os 153 testes passaram localmente depois dessa mudança. Essa correção foi publicada em commit posterior na mesma branch; a CI de acompanhamento ainda precisa terminar antes de afirmar que Windows foi validado. Não declarar a matriz totalmente verde nem contar o job macOS cancelado como aprovação.
 
 Pendências/limites remanescentes:
 
-1. A matriz CI multiplataforma precisa terminar verde; falhas devem ser corrigidas e reportadas por OS/Python.
+1. A CI de acompanhamento da correção Windows precisa terminar: confirmar Windows 3/3 e investigar qualquer timeout/cancelamento no macOS 3.12; a primeira matriz não foi verde.
 2. Os workloads são sintéticos e pequenos; os números não se generalizam a grafos de produção ou às projeções SNAP.
 3. Remoções e mudanças de regras usam recomputação conservadora quando a completude incremental não é demonstrável.
 4. A integração Rust é medida quanto a conversão/construção/refresh; o controlador não seleciona um motor simbólico Rust e nenhum ganho end-to-end é alegado.
@@ -132,10 +132,10 @@ Pendências/limites remanescentes:
 | Índice Rust detecta snapshot obsoleto | Atendido | Testes de stale, refresh e semântica direta/transitiva. |
 | Python/Rust semanticamente equivalentes | Atendido nos testes executados | Matriz completa de SO ainda pendente. |
 | Controlador avaliado em sessões reais de queries | Atendido como sequência sintética | 300 sessões; holdout congelado; resultados sem alegação de superioridade. |
-| CI efetivamente passa nas plataformas | Pendente | Aguardar GitHub Actions em Windows/macOS/Linux. |
+| CI efetivamente passa nas plataformas | Parcial na primeira execução; follow-up pendente | Linux 3/3, macOS 2/3 (um cancelado) e Windows 0/3 na run 42086731767; falhas Windows corrigidas localmente, aguardar novo workflow. |
 | Benchmarks reproduzíveis | Atendido | 30 seeds/família, hashes, CSV/JSON e metadados. |
 | Histórico anterior preservado | Atendido localmente | A branch parte da `main` auditada; sem merge automático. |
 
 ## 7. Publicação
 
-A branch `phase8` deve ser publicada sem alterar `main`, `phase7` ou `phase7new` e sem merge automático. O estado remoto e os checks de CI serão registrados após o push.
+A branch `phase8` foi publicada sem merge automático. A primeira CI detectou e motivou a correção de DLL Windows; a confirmação dos checks da atualização é pendência até nova run concluir.
