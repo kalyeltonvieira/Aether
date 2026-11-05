@@ -115,6 +115,21 @@ Não há comparação numérica direta entre os milissegundos da Fase 7 e os das
 | Holdout com controlador adaptativo de estratégia | Não atendido; controlador permanece o da Fase 6 e não foi promovido |
 | Dataset público com transformação semântica auditável | Não atendido; SNAP continua estrutural, não semântico |
 
+### Situação consolidada
+
+| Objetivo | Situação documentada |
+|---|---|
+| Conhecimento estruturado | Validado |
+| Forward chaining | Validado |
+| Backward chaining | Validado |
+| Estratégia híbrida | Implementada e medida |
+| Inserções incrementais | Implementadas e medidas |
+| Invalidação localizada | Validada |
+| Remoções com provas alternativas | Recomputação necessária |
+| Integração semântica com dados públicos | Pendente |
+| Rust end-to-end | Pendente |
+| Controlador adaptativo de raciocínio | Pendente |
+
 **Veredito:** a fundação estruturada da Fase 7 é funcional e validada em testes e benchmark controlado, mas a Fase 7 completa ainda não está concluída. A Fase 7 ainda não deve ser declarada totalmente concluída: integração semântica auditável com dataset público e avaliação Rust end-to-end continuam pendentes. A comparação de raciocínio e a agenda incremental já foram implementadas e medidas, sem esconder que o ganho incremental tem cauda pior e alto custo de leitura.
 
 ## 10. Artefatos e reprodução
