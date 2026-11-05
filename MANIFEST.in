@@ -1,4 +1,9 @@
 include README.md
 include LICENSE
-include aether_native.rs
 include setup.py
+include rust-toolchain.toml
+recursive-include src/aether/native/rust *.rs
+recursive-include benchmarks *.py *.rs
+recursive-include tests *.py
+recursive-include datasets/manifests *.json
+recursive-include docs *.md

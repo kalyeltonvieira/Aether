@@ -9,7 +9,6 @@ import json
 import os
 import platform
 import random
-import resource
 import statistics
 import sys
 import time

@@ -27,12 +27,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - uses: dtolnay/rust-toolchain@1.99.1
-      - name: Install build tools
-        run: python -m pip install --upgrade pip build
+      - name: Install build tools and editable package
+        run: |
+          python -m pip install --upgrade pip build
+          python -m pip install -e .
       - name: Build source and wheel distributions
         run: python -m build
-      - name: Verify wheel contains Python and Rust sources
-        run: |
-          python -c "import glob, zipfile; p=glob.glob('dist/*.whl')[0]; z=zipfile.ZipFile(p); names=set(z.namelist()); required={'aether_reasoner.py','aether_native.py','aether_native.rs'}; missing=required-names; assert not missing, f'Missing from wheel: {missing}'"
-      - name: Run full test suite
+      - name: Verify wheel contains package and native resources
+        run: >-
+          python -c "import glob, zipfile; p=glob.glob('dist/*.whl')[0]; names=set(zipfile.ZipFile(p).namelist()); required={'aether/__init__.py','aether/metrics.py','aether/native/bindings.py','aether/native/rust/aether_native.rs','aether/resources/datasets/manifests/phase5_datasets.json','aether_knowledge.py'}; missing=required-names; assert not missing, f'Missing from wheel: {missing}'"
+      - name: Verify installed imports and resources
+        run: >-
+          python -c "import aether; from aether.native.bindings import compile_native; from importlib.resources import files; assert files('aether.native').joinpath('rust','aether_native.rs').is_file(); assert files('aether.resources.datasets').joinpath('manifests','phase5_datasets.json').is_file(); print(aether.__file__)"
+      - name: Run full test suite including portability checks
         run: python -m unittest discover -v
