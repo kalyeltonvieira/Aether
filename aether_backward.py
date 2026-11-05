@@ -4,13 +4,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from aether_inference import Pattern, Rule
-from aether_knowledge import KnowledgeStore, Scalar
+from aether_knowledge import KnowledgeStore, Scalar, fact_key_identity, scalar_equal
 
 
 @dataclass(frozen=True)
 class BackwardLimits:
     max_depth: int = 8
     max_operations: int = 10000
+
+    def __post_init__(self) -> None:
+        for name, value in (("max_depth", self.max_depth), ("max_operations", self.max_operations)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"{name} must be a positive integer")
 
 
 @dataclass(frozen=True)
@@ -42,8 +47,8 @@ class BackwardInference:
                 updated = dict(bindings)
                 updated[pattern_value] = value
                 return updated
-            return dict(bindings) if current == value else None
-        return dict(bindings) if value == pattern_value else None
+            return dict(bindings) if scalar_equal(current, value) else None
+        return dict(bindings) if scalar_equal(value, pattern_value) else None
 
     @classmethod
     def _match(cls, fact, pattern: Pattern, bindings):
@@ -64,17 +69,21 @@ class BackwardInference:
         limits = limits or BackwardLimits()
         if not isinstance(goal, tuple) or len(goal) != 3:
             raise TypeError("goal must be (subject, predicate, object)")
+        goal_pattern = Pattern(*goal)
+        if not goal_pattern.is_ground:
+            raise ValueError("backward proof requires a ground goal; use InferenceEngine.query() for bindings")
         operations = 0
-        visiting: set[tuple[str, str, Scalar]] = set()
+        visiting = set()
         incomplete_reason: str | None = None
 
         def search(current: tuple[str, str, Scalar], depth: int) -> Proof:
             nonlocal operations, incomplete_reason
+            identity = fact_key_identity(current)
             operations += 1
             if operations > limits.max_operations:
                 incomplete_reason = "max_operations"
                 return Proof(current, False, False, depth, operations, stop_reason="max_operations")
-            if current in visiting:
+            if identity in visiting:
                 return Proof(current, False, True, depth, operations, stop_reason="cycle")
             direct = self.store.query(subject=current[0], predicate=current[1], object=current[2])
             if direct:
@@ -83,9 +92,11 @@ class BackwardInference:
                 incomplete_reason = "max_depth"
                 return Proof(current, False, False, depth, operations, stop_reason="max_depth")
 
-            visiting.add(current)
+            visiting.add(identity)
             any_incomplete = False
             for rule in self.rules:
+                if not rule.enabled:
+                    continue
                 if rule.consequent.predicate != current[1]:
                     continue
                 bindings = self._unify(current[0], rule.consequent.subject, {})
@@ -126,6 +137,7 @@ class BackwardInference:
                         return None
                     if isinstance(subject, str) and subject.startswith("?") or isinstance(object_value, str) and object_value.startswith("?"):
                         any_incomplete = True
+                        incomplete_reason = "unbound_variables"
                         return None
                     branch = search((subject, antecedent.predicate, object_value), depth + 1)
                     if branch.proven:
@@ -136,9 +148,9 @@ class BackwardInference:
 
                 result = solve(0, bindings, ())
                 if result is not None and result.proven:
-                    visiting.remove(current)
+                    visiting.remove(identity)
                     return result
-            visiting.remove(current)
+            visiting.remove(identity)
             if any_incomplete:
                 return Proof(current, False, False, depth, operations, stop_reason=incomplete_reason or "limit")
             return Proof(current, False, True, depth, operations, stop_reason="not_proven")
