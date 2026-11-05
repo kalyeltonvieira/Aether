@@ -1,0 +1,6 @@
+{
+  "include": ["src/aether/interfaces", "tests/unit/api", "tests/integration/api", "scripts", "benchmarks/phase9"],
+  "extraPaths": ["src"],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.10"
+}

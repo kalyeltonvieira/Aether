@@ -4,6 +4,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, replace
 
+from aether.metrics import available_memory_bytes, total_physical_memory_bytes
 from aether.reasoning.backward import BackwardInference, BackwardLimits
 from aether.reasoning.hybrid import HybridInference
 from aether.reasoning.inference import (
@@ -32,6 +33,9 @@ class DecisionFeatures:
     maintenance_cost_ns: int
     max_operations: int
     max_depth: int
+    memory_available_bytes: int | None = None
+    memory_total_bytes: int | None = None
+    memory_pressure: float | None = None
 
 
 @dataclass(frozen=True)
@@ -76,6 +80,7 @@ class AdaptiveReasoningController:
         max_query_results: int = 1000,
         index_build_ns: int = 0,
         maintenance_cost_ns: int = 0,
+        join_planner: str = "input",
     ) -> None:
         if not isinstance(store, KnowledgeStore):
             raise TypeError("store must be a KnowledgeStore")
@@ -95,6 +100,9 @@ class AdaptiveReasoningController:
         self.backward_limits = backward_limits or BackwardLimits()
         self.forward_limits = forward_limits or InferenceLimits()
         self.max_query_results = max_query_results
+        if join_planner not in {"input", "selective"}:
+            raise ValueError("join_planner must be 'input' or 'selective'")
+        self.join_planner = join_planner
         self.index_build_ns = index_build_ns
         self._maintenance_cost_ns = maintenance_cost_ns
         self._ema_ns: dict[str, float] = {}
@@ -212,11 +220,19 @@ class AdaptiveReasoningController:
         index_entries = stats["subject_index_keys"] + stats["predicate_index_keys"] + stats["object_index_keys"]
         index_cost = int((candidate_estimate + 1) * 100)
         limits = self.forward_limits
+        memory_available = available_memory_bytes()
+        memory_total = total_physical_memory_bytes()
+        memory_pressure = (
+            None
+            if memory_available is None or memory_total is None or memory_total <= 0
+            else min(1.0, max(0.0, 1.0 - memory_available / memory_total))
+        )
         return DecisionFeatures(
             relevant_fact_count, candidate_estimate, direct_candidate_count, entities, len(pattern.variables()),
             len(unbound_variables), density, expected_depth, self.historical_queries, index_entries,
             self.index_build_ns + index_cost, self._maintenance_cost_ns,
             limits.max_operations, limits.max_depth,
+            memory_available, memory_total, memory_pressure,
         )
 
     def _prior_costs(self, features: DecisionFeatures) -> dict[str, float]:
@@ -233,6 +249,10 @@ class AdaptiveReasoningController:
             forward if features.unbound_rule_variables else
             min(forward, max(1000, int(forward * predicate_scan / fact_count)))
         )
+        if features.memory_pressure is not None and features.memory_pressure >= 0.85:
+            pressure = min(1.0, (features.memory_pressure - 0.85) / 0.15)
+            forward *= 1.0 + pressure
+            hybrid *= 1.0 + 0.5 * pressure
         if features.predicate_facts <= self.sparse_predicate_limit:
             backward *= 0.8
         else:
@@ -242,12 +262,18 @@ class AdaptiveReasoningController:
     @staticmethod
     def _feature_bucket(features: DecisionFeatures) -> tuple:
         density_class = "dense" if features.relation_density >= 0.25 else "sparse"
+        memory_class = (
+            "unknown" if features.memory_pressure is None
+            else "constrained" if features.memory_pressure >= 0.85
+            else "normal"
+        )
         return (
             features.free_variables,
             features.unbound_rule_variables,
             int(features.direct_fact_candidates > 0),
             features.expected_depth,
             density_class,
+            memory_class,
         )
 
     def choose(self, goal: tuple[str, str, Scalar]) -> tuple[str, str]:
@@ -305,12 +331,16 @@ class AdaptiveReasoningController:
         if strategy == "hybrid":
             if not pattern.is_ground:
                 raise ValueError("hybrid proof requires a ground goal; use forward query for bindings")
-            result = HybridInference(self.store, self.rules).prove(
+            result = HybridInference(
+                self.store, self.rules, join_planner=self.join_planner
+            ).prove(
                 goal, backward_limits=self.backward_limits, forward_limits=self.forward_limits
             )
             return result.proven, result.complete, result.operations, result.stop_reason, (), None, None
         if strategy == "forward":
-            result = InferenceEngine(self.store, self.rules).query(
+            result = InferenceEngine(
+                self.store, self.rules, join_planner=self.join_planner
+            ).query(
                 pattern, self.forward_limits, max_results=self.max_query_results
             )
             return (

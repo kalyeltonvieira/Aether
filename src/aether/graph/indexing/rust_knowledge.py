@@ -17,6 +17,11 @@ class RustKnowledgeBuild:
     rust_build_ns: int
     store_version: int = 0
 
+    @property
+    def store_structural_version(self) -> int:
+        """Structural snapshot version; kept under the legacy field name too."""
+        return self.store_version
+
 
 class RustKnowledgeIndex:
     """A versioned snapshot of one directed predicate relation.
@@ -39,7 +44,7 @@ class RustKnowledgeIndex:
         self._install_snapshot(self._build_snapshot())
 
     def _build_snapshot(self):
-        version = self.store.version
+        version = self.store.structural_version
         conversion_start = time.perf_counter_ns()
         entity_to_node = {
             entity.entity_id: index
@@ -55,12 +60,12 @@ class RustKnowledgeIndex:
             except KeyError as exc:
                 raise ValueError("relation subject and object must be known entities") from exc
         conversion_ns = time.perf_counter_ns() - conversion_start
-        if self.store.version != version:
+        if self.store.structural_version != version:
             raise RuntimeError("KnowledgeStore changed while building the Rust index; retry refresh()")
         rust_start = time.perf_counter_ns()
         graph = RustDynamicGraph(len(entity_to_node), edges, library=self.library)
         rust_build_ns = time.perf_counter_ns() - rust_start
-        if self.store.version != version:
+        if self.store.structural_version != version:
             graph.close()
             raise RuntimeError("KnowledgeStore changed while building the Rust index; retry refresh()")
         build = RustKnowledgeBuild(
@@ -87,13 +92,18 @@ class RustKnowledgeIndex:
     def store_version(self) -> int:
         return self._store_version
 
+    @property
+    def store_structural_version(self) -> int:
+        return self._store_version
+
     def _ensure_current(self) -> None:
         if self._closed:
             raise RuntimeError("RustKnowledgeIndex is closed")
-        if self.store.version != self._store_version:
+        if self.store.structural_version != self._store_version:
             raise RuntimeError(
                 f"RustKnowledgeIndex is stale (snapshot version {self._store_version}, "
-                f"store version {self.store.version}); call refresh() before querying"
+                f"store structural version {self.store.structural_version}); "
+                "call refresh() before querying"
             )
 
     def refresh(self) -> RustKnowledgeBuild:

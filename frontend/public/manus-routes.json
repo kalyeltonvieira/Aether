@@ -1,0 +1,13 @@
+{
+  "routes": [
+    { "path": "/", "title": "AETHER Studio — Dashboard" },
+    { "path": "/knowledge", "title": "Knowledge Explorer" },
+    { "path": "/graph", "title": "Knowledge Graph" },
+    { "path": "/reasoning", "title": "Reasoning Console" },
+    { "path": "/proofs", "title": "Proof Explorer" },
+    { "path": "/memory", "title": "Memory Center" },
+    { "path": "/events", "title": "Event Monitor" },
+    { "path": "/performance", "title": "Performance Monitor" },
+    { "path": "/settings", "title": "Studio Settings" }
+  ]
+}

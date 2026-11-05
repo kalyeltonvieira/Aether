@@ -44,9 +44,12 @@ class VersionedRustKnowledgeTests(unittest.TestCase):
 
     def test_duplicate_fact_does_not_make_the_snapshot_stale(self):
         version = self.store.version
-        _, inserted = self.store.add_fact("a", "link", "b", provenance=Provenance("other"))
+        structural_version = self.store.structural_version
+        fact, inserted = self.store.add_fact("a", "link", "b", provenance=Provenance("other"))
         self.assertFalse(inserted)
-        self.assertEqual(self.store.version, version)
+        self.assertEqual(self.store.version, version + 1)
+        self.assertEqual(self.store.structural_version, structural_version)
+        self.assertEqual({item.source for item in fact.provenances}, {"fixture", "other"})
         self.assertTrue(self.index.has_fact("a", "b"))
 
     def test_refresh_after_entity_addition_reassigns_dense_node_ids_safely(self):

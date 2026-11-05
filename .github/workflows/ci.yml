@@ -30,7 +30,7 @@ jobs:
       - name: Install build tools and editable package
         run: |
           python -m pip install --upgrade pip build
-          python -m pip install -e .
+          python -m pip install -e ".[api]"
       - name: Build source and wheel distributions
         run: python -m build
       - name: Verify wheel contains package and native resources
@@ -41,3 +41,70 @@ jobs:
           python -c "import aether; from aether.native.bindings import compile_native; from importlib.resources import files; assert files('aether.native').joinpath('rust','aether_native.rs').is_file(); assert files('aether.resources.datasets').joinpath('manifests','phase5_datasets.json').is_file(); print(aether.__file__)"
       - name: Run full test suite including portability checks
         run: python -m unittest discover -v
+
+  frontend:
+    name: Studio on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "11.25.0"
+      - name: Install locked frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+      - name: TypeScript checks
+        run: pnpm --dir frontend typecheck
+      - name: Components and HTTP contract tests
+        run: pnpm --dir frontend test
+      - name: Production build
+        run: pnpm --dir frontend build
+
+  studio-e2e:
+    name: Integrated browser flow on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      AETHER_OPERATOR_TOKEN: aether-e2e-test-token-not-for-production
+      AETHER_AUTH_MODE: token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "11.25.0"
+      - name: Install API and locked frontend dependencies
+        run: |
+          python -m pip install -e ".[api]"
+          pnpm --dir frontend install --frozen-lockfile
+      - name: Install Chromium and system libraries (Linux)
+        if: runner.os == 'Linux'
+        run: pnpm --dir frontend exec playwright install --with-deps chromium
+      - name: Install Chromium (Windows)
+        if: runner.os == 'Windows'
+        run: pnpm --dir frontend exec playwright install chromium
+      - name: Real authenticated UI to API/core flow
+        run: pnpm --dir frontend e2e
+      - name: Browser test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-e2e-${{ matrix.os }}
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+          retention-days: 7

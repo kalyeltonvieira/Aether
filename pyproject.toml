@@ -22,6 +22,16 @@ classifiers = [
 [project.optional-dependencies]
 plots = ["matplotlib>=3.8", "numpy>=1.26"]
 networkx = ["networkx>=3.2"]
+api = ["fastapi>=0.115,<1", "pydantic>=2.8,<3", "psutil>=5.9,<8", "httpx>=0.27,<1", "PyJWT>=2.8,<3", "uvicorn[standard]>=0.30,<1"]
+test = [
+  "pytest>=8,<9",
+  "httpx>=0.27,<1",
+  "fastapi>=0.115,<1",
+  "pydantic>=2.8,<3",
+  "psutil>=5.9,<8",
+  "PyJWT>=2.8,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
 
 [project.urls]
 Repository = "https://github.com/kalyeltonvieira/Aether"
@@ -44,6 +54,13 @@ packages = [
   "aether.resources",
   "aether.resources.datasets",
   "aether.resources.datasets.manifests",
+  "aether.interfaces",
+  "aether.interfaces.api",
+  "aether.interfaces.api.routes",
+  "aether.interfaces.api.schemas",
+  "aether.interfaces.api.services",
+  "aether.interfaces.api.dependencies",
+  "aether.interfaces.api.websocket",
   "benchmarks",
   "benchmarks.baseline",
   "benchmarks.phase2",

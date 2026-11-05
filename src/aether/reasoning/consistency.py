@@ -153,7 +153,7 @@ class ConsistencyValidator:
         derived = inference.by_key(key)
         if derived is None:
             explicit = self.store.query(subject=key[0], predicate=key[1], object=key[2])
-            return bool(explicit) and all(fact.provenance is not None for fact in explicit)
+            return bool(explicit) and all(fact.provenances for fact in explicit)
         for proof in derived.proofs:
             supports_ok = True
             for support in proof.supports:
@@ -163,7 +163,7 @@ class ConsistencyValidator:
                     except KeyError:
                         supports_ok = False
                         break
-                    if fact.provenance is None:
+                    if not fact.provenances:
                         supports_ok = False
                         break
                 elif not self._evidence_for_derived(inference, support, active | {identity}):
@@ -200,7 +200,7 @@ class ConsistencyValidator:
         )
         if conflicts:
             evidence_sufficient = bool(explicit or conflicts) and all(
-                self.store.get_fact(fact_id).provenance is not None for fact_id in all_fact_ids
+                self.store.get_fact(fact_id).provenances for fact_id in all_fact_ids
             )
             return KnowledgeAssessment(
                 (subject, predicate, value), KnowledgeStatus.CONTRADICTED,
@@ -209,7 +209,7 @@ class ConsistencyValidator:
                 "Conflicting records are preserved; no source or confidence is selected automatically.",
             )
         if explicit:
-            sufficient = all(fact.provenance is not None for fact in explicit)
+            sufficient = all(fact.provenances for fact in explicit)
             return KnowledgeAssessment(
                 (subject, predicate, value),
                 KnowledgeStatus.EXPLICIT if sufficient else KnowledgeStatus.INSUFFICIENT_EVIDENCE,
@@ -252,7 +252,7 @@ class ConsistencyValidator:
         issues: list[ConsistencyIssue] = []
         facts = list(self.store.query())
         for fact in facts:
-            if fact.provenance is None:
+            if not fact.provenances:
                 issues.append(ConsistencyIssue("missing_provenance", f"fact {fact.fact_id} has no provenance", (fact.fact_id,)))
 
         legacy_pairs = tuple(incompatible_predicates)

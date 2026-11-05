@@ -1,0 +1,11 @@
+{
+  "name": "aetherstudio",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "frontend:dev": "pnpm --dir frontend dev",
+    "frontend:build": "pnpm --dir frontend build",
+    "frontend:test": "pnpm --dir frontend test",
+    "frontend:typecheck": "pnpm --dir frontend typecheck"
+  }
+}
