@@ -13,7 +13,7 @@ Resultados principais, limitados a esta carga sintética:
 
 A conclusão não é “Aether é mais eficiente em geral”. A conclusão é mais restrita: há economia importante de memória com arrays compactos; o melhor algoritmo depende do tamanho e da carga; o controlador atual ainda não paga seu custo; um kernel nativo merece um protótipo de integração controlado, mas os resultados Rust não provam ganho end-to-end.
 
-![Medianas de latência total e RSS incremental por escala](results/phase3/phase3_results.png)
+![Medianas de latência total e RSS incremental por escala](results/phase4/phase3_release_consistent.png)
 
 ## Protocolo e carga
 
@@ -26,6 +26,12 @@ Comparadores: DFS iterativa com conjuntos Python; DFS com marcas de época sobre
 ## Resultados principais
 
 Medianas em milissegundos, cinco sementes por estratégia. “Melhor convencional” é a menor entre as implementações não adaptativas; “melhor compacta” é a menor entre `compact+set` e `compact+epoch`. O total inclui construção inicial, updates e consultas. Memória heap é estimativa das estruturas retidas; RSS incremental é o delta residente medido após construir o grafo.
+
+### Auditoria da divergência entre gráfico e tabela
+
+O par 16,104 ms versus 18,972 ms veio do mesmo conjunto histórico `results/phase3/final_mixed/summary.json`, mas **não era a mesma estratégia**: 16,104 ms corresponde a `compact+epoch`, enquanto 18,972 ms corresponde a `compact+set`. O gráfico antigo escolhia a rota compacta fixa mais rápida em cada escala; a tabela antiga mostrava especificamente `compact+set`. Logo, era uma inconsistência de rótulo/definição, não um erro dos dados medidos. Os arquivos históricos foram preservados sem alteração.
+
+Para eliminar a ambiguidade, gráfico e tabela desta revisão usam os mesmos dados de release (`results/phase3/final_release/summary.json`) e identificam a rota compacta vencedora no eixo: em 1 mil nós `compact+epoch` = 14,691 ms e `compact+set` = 14,776 ms; em 10 mil, `compact+epoch` = 79,792 ms; em 100 mil, `compact+epoch` = 477,229 ms. O PNG histórico foi preservado; o script gera por padrão uma figura corrigida separada em `results/phase4/phase3_release_consistent.png`.
 
 | Nós | Consultas por semente | Melhor convencional (total) | Melhor compacta (total) | Controlador compacto (total) | Heap sets → compacto | RSS incremental sets → compacto |
 |---:|---:|---:|---:|---:|---:|---:|

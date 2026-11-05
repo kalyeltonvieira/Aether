@@ -58,6 +58,7 @@ class OnlineCostController:
     def __init__(self, alpha=.5, calibration_queries=4, probe_every=96):
         self.alpha=alpha; self.calibration_queries=calibration_queries; self.probe_every=probe_every
         self.ema={'set':None,'epoch':None}; self.queries=0; self.probes=0
+        self.decision_ns=0
         self.recalibrate_remaining=0; self.route='epoch'; self.route_switches=0
         self.route_counts={}; self.phase_counts={}
 
@@ -72,6 +73,7 @@ class OnlineCostController:
         self.ema[key]=ns if old is None else self.alpha*ns+(1-self.alpha)*old
 
     def query(self, graph, s, t, marks, epoch, phase):
+        decision_start=time.perf_counter_ns()
         methods={'set':lambda:reachable_set(graph,s,t), 'epoch':lambda:reachable_epoch(graph,s,t,marks,epoch)}
         if self.queries < self.calibration_queries:
             # Four real requests, alternating candidates, form initial calibration;
@@ -100,6 +102,7 @@ class OnlineCostController:
         phase_counts=self.phase_counts.setdefault(phase,{})
         phase_counts[selected]=phase_counts.get(selected,0)+1
         self.queries+=1
+        self.decision_ns+=max(0,(time.perf_counter_ns()-decision_start)-elapsed)
         return result
 
 

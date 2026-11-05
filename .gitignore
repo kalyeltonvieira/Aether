@@ -17,3 +17,6 @@ results/phase3/**/rust_*kernel
 .DS_Store
 .idea/
 .vscode/
+
+/build/
+**/libaether_native.so

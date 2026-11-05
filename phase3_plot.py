@@ -7,7 +7,7 @@ import numpy as np
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--summary',default='results/phase3/final_mixed/summary.json');p.add_argument('--out',default='results/phase3/phase3_results.png');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--summary',default='results/phase3/final_release/summary.json');p.add_argument('--out',default='results/phase4/phase3_release_consistent.png');a=p.parse_args()
     data=json.load(open(a.summary))['summary']; ns=['1000','10000','100000']; labels=['1 mil','10 mil','100 mil']
     baseline=[]; compact=[]; adaptive=[]; compact_labels=[]; rss_set=[];rss_comp=[]
     for n in ns:
@@ -20,7 +20,7 @@ def main():
     x=np.arange(len(ns));w=.24
     fig,(ax,mem)=plt.subplots(1,2,figsize=(12,5.6),gridspec_kw={'width_ratios':[1.55,1]})
     colors=['#52677d','#2d8a78','#d28d38']
-    for i,(vals,label,color) in enumerate(zip((baseline,compact,adaptive),('sets + set BFS','array compacto + melhor rota','array compacto + adaptativo'),colors)):
+    for i,(vals,label,color) in enumerate(zip((baseline,compact,adaptive),('sets + DFS/set','array compacto + melhor rota fixa','array compacto + adaptativo'),colors)):
         bars=ax.bar(x+(i-1)*w,vals,width=w,label=label,color=color)
         ax.bar_label(bars,fmt='%.1f',fontsize=8,padding=2)
     ax.set_yscale('log');ax.set_ylabel('Tempo total mediano (ms, escala log)')

@@ -109,3 +109,22 @@ python3 phase3_bench.py --seeds 5 --out results/phase3/final_release
 A bateria final contém 75 processos e respostas exatas. O armazenamento compacto economizou aproximadamente 62,6–62,8% do heap estimado, porém a latência não melhorou em todas as escalas; o controlador perdeu para a melhor rota fixa. Consulte [`PHASE3_REPORT.md`](PHASE3_REPORT.md), [dados brutos CSV](results/phase3/final_release/runs.csv) e [resumo JSON](results/phase3/final_release/summary.json).
 
 O perfil de 100k nós localizou o custo na DFS iterativa (`reachable_epoch`: 84,1% do tempo cumulativo do perfil). Só depois disso foi testado um microkernel Rust/CSR. Reproduza com `python3 rust_kernel_eval.py --seeds 5 --n 100000 --queries 90 --repetitions 10 --out results/phase3/rust_release` (requer `rustc`). O ganho mediano de aproximadamente 42,5× é **apenas do kernel**: construção/conversão, updates e integração não foram medidos. Consulte [relatório do perfil](results/phase3/profile/profile_100k.txt) e [resultados Rust](results/phase3/rust_release/summary.json); não extrapole esse fator para o sistema completo.
+
+
+## Fase 4: integração Rust, memória e controle de custo
+
+`aether_native.rs` compila como biblioteca compartilhada e `aether_native.py` fornece a API `RustDynamicGraph` via `ctypes`: `add_edge`, `remove_edge`, `has_edge`, `reachable`, `edge_count` e `close`. O grafo ativo é propriedade de Rust após uma importação em lote; não há cópia Python persistente da adjacência. Cada atualização/consulta paga uma chamada ABI; a construção/conversão Python→Rust é cronometrada. A representação nativa usa linhas mutáveis `Vec<Vec<u32>>`, não CSR, porque inserções/remoções precisam ser exatas. CSR imutável é medido separadamente apenas em workloads sem updates.
+
+O benchmark compara Python sets, Python `array('I')` com épocas/pilha reutilizada, Rust FFI end-to-end, controlador online da Fase 3, política de memória v2, snapshot Python CSR e rebuild compacto a partir do conjunto ativo. Os perfis incluem cadeia esparsa com atalhos, consultas estáveis, mudanças de padrão, updates prolongados intercalados com consultas, componentes desconectados e um DAG pequeno de maior grau com janela limitada (não um grafo completo). As buscas e remoções são verificadas contra BFS independente; o harness falha em qualquer divergência.
+
+```bash
+python3 -m unittest -v test_aether_engine.py test_aether_dynamic.py test_aether_native.py
+python3 phase4_bench.py --seeds 5 --large-seeds 1 --out results/phase4/final
+python3 phase4_plot.py --summary results/phase4/final/summary.json --out-dir results/phase4
+```
+
+O `rustc` é obrigatório; gerar os gráficos requer `matplotlib` e `numpy` em Python. `--seeds` controla 1k/10k/100k e cargas query-heavy; `--large-seeds` controla 500k/1M, famílias de densidade/desconectadas e perfil prolonged. Os tamanhos máximos usam uma semente por padrão por custo de memória/CPU; isso deve aparecer como n=1 no relatório, não como significância estatística. O P95/P99 é gravado como `null` quando a execução tem menos de 100 consultas. O relógio ponta a ponta do worker inclui inicialização do processo e fronteira FFI, mas subtrai a validação BFS que ocorre após a medição; compilação Rust é informada separadamente.
+
+Não há estimativa de joules nem FLOPs. RSS inclui o interpretador e buffers comuns de entrada; heap retido é estimativa (as capacidades Rust não incluem metadados do alocador). O controlador v2 decide antes da construção e nunca converte grafos vivos; seu custo decisório é medido. CSR é escolhido pelo controlador somente quando pressão do orçamento de memória o justifica, pois o piloto query-heavy mostrou que CSR puro em Python pode reduzir memória e ainda assim piorar latência. A política só será recomendada se a bateria final superar a melhor estratégia fixa no objetivo total medido.
+
+Consulte [relatório Fase 3 com auditoria da divergência gráfico/tabela](PHASE3_REPORT.md), [relatório técnico Fase 4](PHASE4_REPORT.md), [CSV bruto Fase 4](results/phase4/final/runs.csv), [resumo JSON](results/phase4/final/summary.json), [gráfico de latência](results/phase4/phase4_latency.png) e [gráficos de memória](results/phase4/phase4_memory.png). A figura Fase 3 original foi preservada; a versão com rótulos corrigidos está em `results/phase4/phase3_release_consistent.png`.
