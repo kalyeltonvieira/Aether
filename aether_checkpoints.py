@@ -8,6 +8,7 @@ costs rather than hiding them.
 from __future__ import annotations
 
 import time
+from array import array
 from dataclasses import dataclass
 
 from aether_dynamic import DynamicGraph
@@ -16,7 +17,7 @@ from aether_dynamic import DynamicGraph
 @dataclass(frozen=True)
 class Checkpoint:
     event_count: int
-    edges: tuple[tuple[int, int], ...]
+    rows: tuple[tuple[int, ...], ...]
     created_bytes: int
 
 
@@ -70,19 +71,19 @@ class SelectiveCheckpointHistory:
         return len(self._checkpoints)
 
     @staticmethod
-    def _snapshot(graph: DynamicGraph) -> tuple[tuple[int, int], ...]:
-        return tuple((source, target) for source in range(graph.n) for target in graph.neighbors(source))
+    def _snapshot(graph: DynamicGraph) -> tuple[tuple[int, ...], ...]:
+        return tuple(tuple(row) for row in graph.rows)
 
     @staticmethod
-    def _snapshot_bytes(edges: tuple[tuple[int, int], ...]) -> int:
-        return len(edges) * 8
+    def _snapshot_bytes(rows: tuple[tuple[int, ...], ...]) -> int:
+        return sum(len(row) for row in rows) * 4
 
     def _make_checkpoint(self) -> None:
         count = self.event_count
         if count == 0 or count == self._last_checkpoint_event:
             return
-        edges = self._snapshot(self.current)
-        checkpoint = Checkpoint(count, edges, self._snapshot_bytes(edges))
+        rows = self._snapshot(self.current)
+        checkpoint = Checkpoint(count, rows, self._snapshot_bytes(rows))
         self._checkpoints[count] = checkpoint
         self._last_checkpoint_event = count
         self.checkpoint_creations += 1
@@ -128,8 +129,7 @@ class SelectiveCheckpointHistory:
         graph = DynamicGraph(self.n, "compact")
         start = 0
         if checkpoint is not None:
-            for source, target in checkpoint.edges:
-                graph.add_edge(source, target)
+            graph.rows = [array("I", row) for row in checkpoint.rows]
             start = checkpoint.event_count
         for _, operation, source, target in self._events[start:]:
             if operation == "add":
@@ -150,8 +150,7 @@ class SelectiveCheckpointHistory:
         graph = DynamicGraph(self.n, "compact")
         start = 0
         if checkpoint is not None:
-            for source, target in checkpoint.edges:
-                graph.add_edge(source, target)
+            graph.rows = [array("I", row) for row in checkpoint.rows]
             start = checkpoint.event_count
         replayed = 0
         for _, operation, source, target in self._events[start:event_count]:
