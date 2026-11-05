@@ -5,7 +5,7 @@ provenance, type-aware scalar identity and query indexes; it does not infer.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import struct
 from typing import Mapping
 
@@ -111,6 +111,14 @@ class Provenance:
         ))
 
 
+@dataclass(frozen=True)
+class FactEvidence:
+    """One declared support record for a fact, including its own confidence."""
+
+    provenance: Provenance | None
+    confidence: float | None
+
+
 @dataclass(frozen=True, eq=False)
 class Entity:
     entity_id: str
@@ -137,6 +145,28 @@ class Fact:
     provenance: Provenance | None
     confidence: float | None
     properties: tuple[tuple[str, Scalar], ...] = ()
+    evidence_records: tuple[FactEvidence, ...] = ()
+
+    def __post_init__(self) -> None:
+        records = tuple(self.evidence_records) or (FactEvidence(self.provenance, self.confidence),)
+        if any(not isinstance(record, FactEvidence) for record in records):
+            raise TypeError("evidence_records must contain FactEvidence values")
+        unique = tuple(dict.fromkeys(records))
+        object.__setattr__(self, "evidence_records", unique)
+
+    @property
+    def provenances(self) -> tuple[Provenance, ...]:
+        return tuple(dict.fromkeys(
+            record.provenance for record in self.evidence_records
+            if record.provenance is not None
+        ))
+
+    @property
+    def confidence_values(self) -> tuple[float, ...]:
+        return tuple(dict.fromkeys(
+            record.confidence for record in self.evidence_records
+            if record.confidence is not None
+        ))
 
     def property_map(self) -> dict[str, Scalar]:
         return dict(self.properties)
@@ -156,12 +186,14 @@ class Fact:
             and self.provenance == other.provenance
             and self.confidence == other.confidence
             and _properties_identity(self.properties) == _properties_identity(other.properties)
+            and self.evidence_records == other.evidence_records
         )
 
     def __hash__(self) -> int:
         return hash((
             self.fact_id, self.subject, self.predicate, scalar_identity(self.object),
             self.provenance, self.confidence, _properties_identity(self.properties),
+            self.evidence_records,
         ))
 
 
@@ -177,6 +209,7 @@ class KnowledgeStore:
         self._by_object: dict[ScalarIdentity, set[int]] = {}
         self._next_fact_id = 1
         self.version = 0
+        self.structural_version = 0
 
     @staticmethod
     def _entity_id(value: str) -> str:
@@ -230,6 +263,7 @@ class KnowledgeStore:
         entity = Entity(entity_id, normalized)
         self._entities[entity_id] = entity
         self.version += 1
+        self.structural_version += 1
         return entity
 
     def update_entity(self, entity_id: str, properties: Mapping[str, Scalar]) -> Entity:
@@ -271,7 +305,33 @@ class KnowledgeStore:
         key = (subject, predicate, scalar_identity(object))
         existing_id = self._fact_keys.get(key)
         if existing_id is not None:
-            return self._facts[existing_id], False
+            existing = self._facts[existing_id]
+            merged_properties = dict(existing.properties)
+            changed = False
+            for name, value in self._properties(properties):
+                current = merged_properties.get(name, ...)
+                if current is not ... and not scalar_equal(current, value):
+                    raise ValueError(
+                        f"duplicate fact has conflicting property {name!r}: "
+                        f"{current!r} != {value!r}"
+                    )
+                if current is ...:
+                    merged_properties[name] = value
+                    changed = True
+            evidence = FactEvidence(provenance, confidence)
+            evidence_records = existing.evidence_records
+            if evidence not in evidence_records:
+                evidence_records = evidence_records + (evidence,)
+                changed = True
+            if changed:
+                existing = replace(
+                    existing,
+                    properties=tuple(sorted(merged_properties.items())),
+                    evidence_records=evidence_records,
+                )
+                self._facts[existing_id] = existing
+                self.version += 1
+            return existing, False
         fact = Fact(
             self._next_fact_id,
             subject,
@@ -280,6 +340,7 @@ class KnowledgeStore:
             provenance,
             confidence,
             self._properties(properties),
+            (FactEvidence(provenance, confidence),),
         )
         self._next_fact_id += 1
         self._facts[fact.fact_id] = fact
@@ -288,6 +349,7 @@ class KnowledgeStore:
         self._by_predicate.setdefault(predicate, set()).add(fact.fact_id)
         self._by_object.setdefault(scalar_identity(object), set()).add(fact.fact_id)
         self.version += 1
+        self.structural_version += 1
         return fact, True
 
     def get_fact(self, fact_id: int) -> Fact:
@@ -306,6 +368,7 @@ class KnowledgeStore:
         self._by_predicate[fact.predicate].remove(fact.fact_id)
         self._by_object[scalar_identity(fact.object)].remove(fact.fact_id)
         self.version += 1
+        self.structural_version += 1
         return fact
 
     def query(
@@ -360,4 +423,5 @@ class KnowledgeStore:
             "predicate_index_keys": len(self._by_predicate),
             "object_index_keys": len(self._by_object),
             "version": self.version,
+            "structural_version": self.structural_version,
         }

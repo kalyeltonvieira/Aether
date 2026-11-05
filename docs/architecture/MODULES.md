@@ -2,7 +2,7 @@
 
 | Responsabilidade | Módulos canônicos |
 |---|---|
-| Conhecimento | `aether.core.knowledge.store`: Entity, Fact, Provenance, KnowledgeStore |
+| Conhecimento | `aether.core.knowledge.store`: Entity, Fact, FactEvidence, Provenance, KnowledgeStore |
 | Inferência/reasoning | `aether.reasoning.inference`, `backward`, `hybrid`, `incremental`, `reasoner`, `controller`, `dependencies`, `consistency` |
 | Grafos | `aether.graph.dynamic`, `engine`, `components`, `incremental_components`, `parallel`, `indexing.rust_knowledge` |
 | Memória/políticas | `aether.memory.cache`, `adaptive_controller`, `adaptive_storage`, `patterns` |

@@ -202,6 +202,7 @@ class ExplanationNode:
     provenance: Provenance | None = None
     proofs: tuple[ExplanationProof, ...] = ()
     cycle_truncated: bool = False
+    provenances: tuple[Provenance, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -225,6 +226,8 @@ class QueryResult:
     conclusions_produced: int
     stop_reason: str | None
     inference: InferenceResult
+    offset: int = 0
+    next_offset: int | None = None
 
 
 class InferenceEngine:
@@ -431,7 +434,15 @@ class InferenceEngine:
         target = result.by_key(key)
         if target is None:
             direct = self.store.query(subject=key[0], predicate=key[1], object=key[2])
-            return tuple(ExplanationNode(fact.key, fact.fact_id, fact.provenance) for fact in direct)
+            return tuple(
+                ExplanationNode(
+                    fact.key,
+                    explicit_fact_id=fact.fact_id,
+                    provenance=fact.provenance,
+                    provenances=fact.provenances,
+                )
+                for fact in direct
+            )
         derived = {fact.identity: fact for fact in result.conclusions}
         explicit = {fact.fact_id: fact for fact in self.store.query()}
 
@@ -444,7 +455,12 @@ class InferenceEngine:
                 direct = self.store.query(subject=current_key[0], predicate=current_key[1], object=current_key[2])
                 if direct:
                     source = direct[0]
-                    return ExplanationNode(source.key, source.fact_id, source.provenance)
+                    return ExplanationNode(
+                        source.key,
+                        explicit_fact_id=source.fact_id,
+                        provenance=source.provenance,
+                        provenances=source.provenances,
+                    )
                 return ExplanationNode(current_key)
             branches = []
             for proof in fact.proofs:
@@ -455,7 +471,12 @@ class InferenceEngine:
                         if source is None:
                             support_nodes.append(ExplanationNode(("?missing", "support", support)))
                         else:
-                            support_nodes.append(ExplanationNode(source.key, source.fact_id, source.provenance))
+                            support_nodes.append(ExplanationNode(
+                                source.key,
+                                explicit_fact_id=source.fact_id,
+                                provenance=source.provenance,
+                                provenances=source.provenances,
+                            ))
                     else:
                         support_nodes.append(build(support, active | {identity}))
                 branches.append(ExplanationProof(proof, tuple(support_nodes)))
@@ -489,11 +510,14 @@ class InferenceEngine:
         limits: InferenceLimits | None = None,
         *,
         max_results: int = 1000,
+        offset: int = 0,
     ) -> QueryResult:
         if not isinstance(pattern, Pattern):
             raise TypeError("pattern must be a Pattern")
         if isinstance(max_results, bool) or not isinstance(max_results, int) or max_results < 1:
             raise ValueError("max_results must be a positive integer")
+        if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+            raise ValueError("offset must be a non-negative integer")
         limits = limits or InferenceLimits()
         inference = self.infer(limits)
         explicit = self.store.query(predicate=pattern.predicate)
@@ -511,6 +535,7 @@ class InferenceEngine:
         facts_examined = inference.facts_examined
         stop_reason = inference.stop_reason
         complete = inference.complete
+        next_offset = None
         for key, fact_id, derived_fact in candidates:
             operations += 1
             facts_examined += 1
@@ -526,11 +551,15 @@ class InferenceEngine:
             )
             if binding_identity in seen_bindings:
                 continue
+            binding_offset = len(seen_bindings)
+            seen_bindings.add(binding_identity)
+            if binding_offset < offset:
+                continue
             if len(solutions) >= max_results:
                 complete = False
                 stop_reason = "max_results"
+                next_offset = offset + len(solutions)
                 break
-            seen_bindings.add(binding_identity)
             explanation = self.explain_all(inference, key)
             solutions.append(QuerySolution(
                 tuple(sorted(bindings.items())),
@@ -541,5 +570,5 @@ class InferenceEngine:
             ))
         return QueryResult(
             tuple(solutions), complete, operations, facts_examined,
-            len(inference.conclusions), stop_reason, inference,
+            len(inference.conclusions), stop_reason, inference, offset, next_offset,
         )
