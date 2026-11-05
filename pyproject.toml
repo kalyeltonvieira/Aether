@@ -43,6 +43,7 @@ py-modules = [
   "aether_incremental",
   "aether_incremental_components",
   "aether_inference",
+  "aether_metrics",
   "aether_knowledge",
   "aether_knowledge_rust",
   "aether_native",

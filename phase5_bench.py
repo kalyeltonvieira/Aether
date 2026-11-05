@@ -35,6 +35,7 @@ from aether_dynamic import (
     shortest_path,
 )
 from aether_native import RustDynamicGraph, compile_native
+from aether_metrics import current_rss_bytes, peak_rss_bytes, total_physical_memory_bytes
 
 STATIC_METHODS = (
     "python_sets",
@@ -176,60 +177,6 @@ def load_snap_graph(path: Path, entry: dict) -> tuple[int, list[tuple[int, int]]
         "official_edge_count_matches_original_unique": entry.get("edges") is None or int(entry["edges"]) == len(original_unique),
     }
     return node_count, edges, stats
-
-
-def current_rss_bytes():
-    if platform.system() == "Linux":
-        try:
-            with open("/proc/self/status", encoding="ascii") as stream:
-                for line in stream:
-                    if line.startswith("VmRSS:"):
-                        return int(line.split()[1]) * 1024
-        except OSError:
-            return None
-    if platform.system() == "Windows":
-        class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
-            _fields_ = [
-                ("cb", ctypes.c_ulong),
-                ("PageFaultCount", ctypes.c_ulong),
-                ("PeakWorkingSetSize", ctypes.c_size_t),
-                ("WorkingSetSize", ctypes.c_size_t),
-                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                ("PagefileUsage", ctypes.c_size_t),
-                ("PeakPagefileUsage", ctypes.c_size_t),
-            ]
-        counters = PROCESS_MEMORY_COUNTERS()
-        counters.cb = ctypes.sizeof(counters)
-        psapi = ctypes.WinDLL("psapi", use_last_error=True)
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel32.GetCurrentProcess.argtypes = []
-        kernel32.GetCurrentProcess.restype = ctypes.c_void_p
-        psapi.GetProcessMemoryInfo.argtypes = [
-            ctypes.c_void_p, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), ctypes.c_ulong
-        ]
-        psapi.GetProcessMemoryInfo.restype = ctypes.c_int
-        process = kernel32.GetCurrentProcess()
-        ok = psapi.GetProcessMemoryInfo(process, ctypes.byref(counters), counters.cb)
-        return int(counters.WorkingSetSize) if ok else None
-    return None
-
-
-def peak_rss_bytes():
-    try:
-        import resource
-        value = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        if platform.system() == "Darwin":
-            return int(value)
-        return int(value * 1024)
-    except (ImportError, AttributeError, OSError):
-        if platform.system() == "Windows":
-            # Windows has no resource module; current working set is a lower
-            # bound, so the field remains explicitly null instead of mislabelled.
-            return None
-        return None
 
 
 def percentile_ms(values, p):
@@ -1045,15 +992,7 @@ def summarize(rows):
 
 
 def total_memory_visible_bytes():
-    if platform.system() == "Linux":
-        try:
-            with open("/proc/meminfo", encoding="ascii") as stream:
-                for line in stream:
-                    if line.startswith("MemTotal:"):
-                        return int(line.split()[1]) * 1024
-        except OSError:
-            return None
-    return None
+    return total_physical_memory_bytes()
 
 
 def main():
