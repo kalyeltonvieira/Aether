@@ -62,11 +62,13 @@ Foram comparados replay completo, checkpoints periódicos e checkpoints adaptati
 
 | Estratégia | Mediana construção + recuperação | Mediana de eventos reproduzidos | Exatidão estrutural |
 |---|---:|---:|---:|
-| `replay` | **4,132 ms** | 4.493 no agregado da distribuição | 100% |
-| `periodic` | 6,784 ms | 229 no agregado da distribuição | 100% |
-| `adaptive` | 6,682 ms | 229 no agregado da distribuição | 100% |
+| `replay` | **4,064 ms** | 4.493 no agregado da distribuição | 100% |
+| `periodic` | 5,564 ms | 229 no agregado da distribuição | 100% |
+| `adaptive` | 5,592 ms | 229 no agregado da distribuição | 100% |
 
-A leitura principal é o trade-off: checkpoints reduziram o replay observado e mantiveram exatidão, mas construção e materialização fizeram o custo total mediano ficar acima do replay puro nesta carga curta. `adaptive` foi cerca de 1,5% melhor que `periodic`, mas ambos perderam para `replay` no end-to-end. A política adaptativa não deve ser padrão sem workloads temporais mais longos ou consultas históricas mais frequentes.
+A leitura principal é o trade-off: checkpoints reduziram o replay observado e mantiveram exatidão, mas construção e materialização ainda fizeram o custo total mediano ficar acima do replay puro nesta carga curta. A continuação da Fase 6 substituiu a restauração por inserções individuais pela cópia direta de linhas compactas: contra a medição anterior, `periodic` caiu 18,0% e `adaptive` caiu 16,3%. `adaptive` ficou praticamente empatado com `periodic`, mas ambos ainda perderam para `replay` no holdout curto. Em um ensaio diagnóstico com 200 recuperações, porém, `adaptive` venceu replay em cinco datasets prefixados; o benefício depende da quantidade de recuperações históricas. A política adaptativa não deve ser padrão sem workloads temporais mais longos ou consultas históricas mais frequentes.
+
+Os testes focados da otimização passaram (15/15) e a suíte completa permaneceu em 73/73. O snapshot continua armazenando linhas imutáveis e a restauração mantém a mesma semântica para inserções, remoções, empates de timestamp e replay independente.
 
 ## 6. Componentes fracos incrementais
 
@@ -133,7 +135,7 @@ As latências não devem ser comparadas diretamente como se fossem o mesmo workl
 | Resultados Fases 1–5 preservados | **Atendido** |
 | Resultados SNAP têm procedência e hashes | **Atendido para os cinco arquivos disponíveis** |
 
-**Veredito:** a Fase 6 atende aos critérios de correção, reprodutibilidade, orçamento, procedência e transparência. Ela **não atende** aos critérios de demonstrar superioridade adaptativa universal, ganho concorrente ou compatibilidade Windows validada. Portanto, a Fase 6 deve ser considerada **validada experimentalmente, mas não pronta para declarar uma política adaptativa padrão**.
+**Veredito:** a Fase 6 atende aos critérios de correção, reprodutibilidade, orçamento, procedência e transparência. A otimização da restauração melhorou substancialmente os checkpoints, mas ela **ainda não atende** aos critérios de demonstrar superioridade adaptativa universal, ganho concorrente ou compatibilidade Windows validada. Portanto, a Fase 6 deve ser considerada **validada experimentalmente, mas não pronta para declarar uma política adaptativa padrão**.
 
 ## 11. Limitações e falhas encontradas
 
@@ -150,13 +152,13 @@ As latências não devem ser comparadas diretamente como se fossem o mesmo workl
 ## 12. Artefatos
 
 - Harness: [`phase6_validation.py`](phase6_validation.py)
-- Resultado final: [`summary.json`](results/phase6/final_holdout_v3/summary.json)
-- Procedência: [`provenance.json`](results/phase6/final_holdout_v3/provenance.json)
-- Memória: [`memory_policies.csv`](results/phase6/final_holdout_v3/memory_policies.csv)
-- Checkpoints: [`checkpoint_policies.csv`](results/phase6/final_holdout_v3/checkpoint_policies.csv)
-- Componentes: [`components_incremental.csv`](results/phase6/final_holdout_v3/components_incremental.csv)
-- Controlador: [`controller_holdout.csv`](results/phase6/final_holdout_v3/controller_holdout.csv)
-- Concorrência: [`parallel_sequential.csv`](results/phase6/final_holdout_v3/parallel_sequential.csv)
-- Gráficos: [`memory_policies.png`](results/phase6/final_holdout_v3/memory_policies.png), [`checkpoint_policies.png`](results/phase6/final_holdout_v3/checkpoint_policies.png), [`components_incremental.png`](results/phase6/final_holdout_v3/components_incremental.png), [`controller_holdout.png`](results/phase6/final_holdout_v3/controller_holdout.png), [`parallel_sequential.png`](results/phase6/final_holdout_v3/parallel_sequential.png)
+- Resultado final: [`summary.json`](results/phase6/final_holdout_v4/summary.json)
+- Procedência: [`provenance.json`](results/phase6/final_holdout_v4/provenance.json)
+- Memória: [`memory_policies.csv`](results/phase6/final_holdout_v4/memory_policies.csv)
+- Checkpoints: [`checkpoint_policies.csv`](results/phase6/final_holdout_v4/checkpoint_policies.csv)
+- Componentes: [`components_incremental.csv`](results/phase6/final_holdout_v4/components_incremental.csv)
+- Controlador: [`controller_holdout.csv`](results/phase6/final_holdout_v4/controller_holdout.csv)
+- Concorrência: [`parallel_sequential.csv`](results/phase6/final_holdout_v4/parallel_sequential.csv)
+- Gráficos: [`memory_policies.png`](results/phase6/final_holdout_v4/memory_policies.png), [`checkpoint_policies.png`](results/phase6/final_holdout_v4/checkpoint_policies.png), [`components_incremental.png`](results/phase6/final_holdout_v4/components_incremental.png), [`controller_holdout.png`](results/phase6/final_holdout_v4/controller_holdout.png), [`parallel_sequential.png`](results/phase6/final_holdout_v4/parallel_sequential.png)
 
-O diretório `results/phase6/final_holdout_v2` contém a primeira execução diagnóstica preservada; ela revelou pressão de memória insuficiente e não é usada nas conclusões finais. A versão v3 é a medição definitiva após a correção do protocolo.
+O diretório `results/phase6/final_holdout_v2` contém a primeira execução diagnóstica preservada; ela revelou pressão de memória insuficiente e não é usada nas conclusões finais. A versão v3 é a medição anterior à otimização de checkpoints; a versão v4 é a medição definitiva após a correção do protocolo e da restauração.
