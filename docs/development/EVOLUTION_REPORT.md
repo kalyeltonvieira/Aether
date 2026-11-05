@@ -1,7 +1,7 @@
 # Relatório de evolução — AETHER
 
 ## Estado corrente (atualização)
-O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`. A execução GitHub Actions [42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839) passou 13/13 jobs: Python Ubuntu/macOS/Windows em 3.10/3.12/3.13, Studio Ubuntu/Windows e E2E Ubuntu/Windows. A branch local `fix/stage1-reliability` corrige os três achados: sessão Preview limitada ao `exp` do JWT, stores de domínio efêmeros em todos os componentes quando a persistência é desligada e OAuth state reservado antes de I/O externo. Validação desta branch: unittest 207 aprovados/6 skips; pytest 202 aprovados/21 skips (todos relacionados à ausência de `rustc`); frontend typecheck, 16 testes e build aprovados. Smoke build do wheel inclui os harnesses `benchmarks.phase9` e não emite o aviso de pacote omitido. A CI desta branch ainda não foi executada nem houve merge; Etapa 1 permanece em andamento até essa validação.
+O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`. A execução GitHub Actions [42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839) passou 13/13 jobs; a branch `fix/stage1-reliability` também passou 13/13 ([run 42125306398](https://github.com/kalyeltonvieira/Aether/actions/runs/42125306398)). Os três reparos nessa branch são sessão Preview limitada ao `exp` do JWT, stores de domínio efêmeros quando a persistência é desligada e reserva de OAuth state antes de I/O externo. A revisão/merge ainda não ocorreu, então a Etapa 1 permanece em andamento. A branch separada `feat/contextual-evidence-v1` implementa a primeira fatia da Etapa 2: metadados por evidência, seleção antes da inferência e compatibilidade com snapshot v1. Validação local completa: unittest 207 aprovados/6 skips, pytest 208 aprovados/21 skips por toolchain Rust ausente, frontend typecheck/19 testes/build e wheel aprovados; CI da branch contextual ainda pendente. Não se trata ainda de memória episódica, revisão de crenças ou resolução de conflitos.
 
 ## Snapshot histórico da evolução anterior
 O conteúdo restante registra a fase de desenvolvimento anterior, incluindo sua branch, commits, validações e pendências à época; não é a descrição do estado corrente de integração/CI.
@@ -17,7 +17,7 @@ O Studio separa o núcleo AETHER, a API FastAPI e o cliente React/TypeScript/Vit
 | D — eficiência (snapshot histórico) | Concluída no escopo da fase | Commits `a153a0e` e `d453b2f`: planner seletivo mensurável, controller com memória observada, benchmarks independentes e decisão conservadora de não promover estratégia adaptativa que perdeu das fixas. |
 | E — API, segurança e AETHER Studio (snapshot histórico) | Implementada no escopo da fase; validação externa ainda em curso naquele registro | FastAPI + React/Vite, autenticação/token independente, contrato Manus OAuth, OpenAPI, nove rotas, WebSocket, persistência, CRUD, grafo, reasoning/proofs, memória, eventos, métricas, settings, launcher Windows/Linux, CI e capturas reais. Ver bloqueios abaixo. |
 
-## Validação executada neste checkout
+## Validação histórica do snapshot anterior do Studio
 
 Ambiente local desta sessão: Linux `aarch64` (`Linux-6.18.38+-aarch64-with-glibc2.39`), CPython 3.12.3, Rust 1.99.1, Node v22.23.4 e pnpm 11.25.0. A FFI e o core foram exercitados nessa arquitetura; não se extrapola o resultado para outros SOs/CPUs.
 

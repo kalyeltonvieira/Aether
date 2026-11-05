@@ -41,6 +41,7 @@ class KnowledgeEventIntegrationTests(unittest.TestCase):
                 "object": "bob",
                 "confidence": 0.9,
                 "properties": {"channel": "smtp"},
+                "context": {"domain": "contacts", "period": "2026"},
             },
             source="studio",
             event_id="request-add-1",
@@ -50,6 +51,8 @@ class KnowledgeEventIntegrationTests(unittest.TestCase):
         first_version = self.store.version
         self.processor(receipt.event)  # Duplicate event evidence is idempotent.
         self.assertEqual(self.store.version, first_version)
+        stored = self.store.query(subject="alice", predicate="sent_email_to")[0]
+        self.assertEqual(stored.evidence_records[0].context_map, {"domain": "contacts", "period": "2026"})
         self.assertEqual(
             self.store.history_stats()["retained_changes"], history_size + 1
         )

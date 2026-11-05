@@ -1,8 +1,8 @@
 """Knowledge entities, facts, storage and provenance."""
-from .store import Entity, Fact, FactEvidence, KnowledgeChange, KnowledgeStore, Provenance, Scalar
+from .store import Context, Entity, Fact, FactEvidence, KnowledgeChange, KnowledgeStore, Provenance, Scalar
 from .persistence import load_store, save_store
 
 __all__ = [
-    "Entity", "Fact", "FactEvidence", "KnowledgeChange", "KnowledgeStore",
+    "Context", "Entity", "Fact", "FactEvidence", "KnowledgeChange", "KnowledgeStore",
     "Provenance", "Scalar", "load_store", "save_store",
 ]

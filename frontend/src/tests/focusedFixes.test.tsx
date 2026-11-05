@@ -5,6 +5,7 @@ import { ExplanationTree } from '../components/ExplanationTree'
 import { fixedStrategies } from '../pages/SettingsPage'
 import { MetricChart } from '../pages/PerformancePage'
 import { parseProofSelection, proofHrefForSolution } from '../features/reasoning/proofLinks'
+import { parseContextMap } from '../features/knowledge/valueParsing'
 import type { ExplanationNode } from '../types/api'
 
 const recursiveExplanation: ExplanationNode = {
@@ -33,6 +34,21 @@ describe('focused frontend contract fixes', () => {
 
     const selection = parseProofSelection(new URLSearchParams('subject=alice&predicate=flag&object=&object_type=none'))
     expect(selection).toEqual({ queryKey: { subject: 'alice', predicate: 'flag', object: null }, objectType: 'null' })
+
+    const contextual = proofHrefForSolution(
+      { key: ['alice', 'score', 42], object_type: 'int' },
+      { domain: 'legal', period: '2026' },
+    )
+    expect(contextual).toContain('context_filter=')
+    const contextualSelection = parseProofSelection(new URLSearchParams(contextual.split('?')[1]))
+    expect(contextualSelection?.contextFilter).toEqual({ domain: 'legal', period: '2026' })
+  })
+
+  it('accepts only bounded string-to-string context maps', () => {
+    expect(parseContextMap('{"domain":"legal"}')).toEqual({ domain: 'legal' })
+    expect(parseContextMap('')).toBeUndefined()
+    expect(() => parseContextMap('[]')).toThrow(/objeto JSON/)
+    expect(() => parseContextMap('{"domain":1}')).toThrow(/strings não vazias/)
   })
 
   it('renders nested explicit supports as navigable fact links with proof metadata and real alternatives', () => {

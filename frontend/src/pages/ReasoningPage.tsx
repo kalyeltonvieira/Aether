@@ -6,7 +6,7 @@ import { useLiveUpdates } from '../hooks/useLiveUpdates'
 import { useAuth } from '../app/AuthContext'
 import { api } from '../services/apiClient'
 import type { ConfigResponse, InferenceResult, QueryResult, QuerySolution, Rule, RulePattern } from '../types/api'
-import { parseTypedValue, displayValue, valueTypes, type ValueType } from '../features/knowledge/valueParsing'
+import { parseContextMap, parseTypedValue, displayValue, valueTypes, type ValueType } from '../features/knowledge/valueParsing'
 import { proofHrefForSolution, valueTypeToObjectType } from '../features/reasoning/proofLinks'
 import { ExplanationTree } from '../components/ExplanationTree'
 import { EmptyState, ErrorState, InfoCallout, JsonPreview, LoadingBlock, PageHeader, Panel, PermissionNotice, StatusBadge } from '../components/ui'
@@ -19,6 +19,8 @@ export function ReasoningPage() {
   const [object, setObject] = useState('?y')
   const [strategy, setStrategy] = useState<'forward' | 'backward' | 'hybrid' | 'adaptive'>('forward')
   const [objectType, setObjectType] = useState<ValueType>('str')
+  const [contextJson, setContextJson] = useState('')
+  const [contextFilter, setContextFilter] = useState<Record<string, string> | undefined>()
   const [result, setResult] = useState<QueryResult | null>(null)
   const [inference, setInference] = useState<InferenceResult | null>(null)
   const [busy, setBusy] = useState(false)
@@ -32,16 +34,16 @@ export function ReasoningPage() {
     if (config.data?.default_strategy) setStrategy(config.data.default_strategy)
   }, [config.data])
 
-  const queryAt = async (offset: number) => {
+  const queryAt = async (offset: number, selectedContext = contextFilter) => {
     const parsedObject = object.startsWith('?') ? object : parseTypedValue(object, objectType)
-    return api.post<QueryResult>('/queries', { subject, predicate, object: parsedObject, object_type: valueTypeToObjectType(objectType), strategy, offset, limit: 100 })
+    return api.post<QueryResult>('/queries', { subject, predicate, object: parsedObject, object_type: valueTypeToObjectType(objectType), strategy, offset, limit: 100, context_filter: selectedContext })
   }
   const runQuery = async (event: React.FormEvent) => {
     event.preventDefault()
     setBusy(true)
     setError(null)
     setInference(null)
-    try { setQueryOffset(0); setResult(await queryAt(0)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Falha na consulta.') } finally { setBusy(false) }
+    try { const parsedContext = parseContextMap(contextJson); setContextFilter(parsedContext); setQueryOffset(0); setResult(await queryAt(0, parsedContext)) } catch (reason) { setError(reason instanceof Error ? reason.message : 'Falha na consulta.') } finally { setBusy(false) }
   }
   const changePage = async (offset: number) => {
     setBusy(true)
@@ -66,10 +68,11 @@ export function ReasoningPage() {
           <label>Objeto<input value={object} onChange={(e) => setObject(e.target.value)} aria-label="Objeto da consulta" /></label>
           <label>Tipo do objeto<select value={objectType} onChange={(e) => setObjectType(e.target.value as ValueType)}>{valueTypes.map((type) => <option value={type.value} key={type.value}>{type.label}</option>)}</select></label>
           <label>Estratégia<select value={strategy} onChange={(e) => setStrategy(e.target.value as typeof strategy)}>{['forward', 'backward', 'hybrid', 'adaptive'].map((option) => <option value={option} key={option}>{option}</option>)}</select></label>
+          <label>Filtro contextual <span className="muted">(JSON; ex. domínio/período)</span><textarea aria-label="Filtro contextual JSON" rows={2} value={contextJson} onChange={(e) => setContextJson(e.target.value)} placeholder={'{"domain":"legal","period":"2026"}'} /></label>
           <div className="query-actions"><button className="button button--primary" type="submit" disabled={busy}><Play size={15} />{busy ? 'Executando…' : 'Executar consulta'}</button></div>
         </form>
       </Panel>
-      <Panel title="Resultado da consulta" description={result ? `${result.solutions.length} solução(ões) · ${result.strategy} · ${result.execution_ns} ns` : 'A execução real aparecerá aqui.'}>
+      <Panel title="Resultado da consulta" description={result ? `${result.solutions.length} solução(ões) · ${result.strategy} · ${result.execution_ns} ns${result.context_filter ? ` · ${result.context_fact_count ?? 0} fatos elegíveis no contexto` : ''}` : 'A execução real aparecerá aqui.'}>
         {busy && !result ? <LoadingBlock /> : result ? <QueryResultView result={result} offset={queryOffset} onPage={changePage} /> : <EmptyState title="Nenhuma consulta executada" description="Preencha o padrão e execute contra o engine." />}
       </Panel>
     </div>
@@ -81,13 +84,13 @@ export function ReasoningPage() {
 function QueryResultView({ result, offset, onPage }: { result: QueryResult; offset: number; onPage: (offset: number) => void }) {
   return <div className="result-stack">
     <div className="result-summary"><StatusBadge status={result.complete ? 'complete' : 'incomplete'} label={result.complete ? 'completo' : 'incompleto'} /><span>{result.proven ? 'há conclusão' : 'sem conclusão'}</span><span>{result.operations} operações</span>{result.stop_reason && <span className="warning-text">{result.stop_reason}</span>}</div>
-    {result.solutions.length ? <div className="solution-list">{result.solutions.map((solution, index) => <SolutionCard key={`${solution.fact_id ?? 'derived'}-${index}`} solution={solution} />)}</div> : <EmptyState title="Nenhuma solução" description="O engine não encontrou uma solução para este padrão." />}
+    {result.solutions.length ? <div className="solution-list">{result.solutions.map((solution, index) => <SolutionCard key={`${solution.fact_id ?? 'derived'}-${index}`} solution={solution} contextFilter={result.context_filter} />)}</div> : <EmptyState title="Nenhuma solução" description={result.context_filter ? 'Nenhuma solução foi encontrada entre os fatos elegíveis para este filtro contextual.' : 'O engine não encontrou uma solução para este padrão.'} />}
     <div className="pagination-row"><button className="button button--ghost" disabled={offset === 0} onClick={() => onPage(Math.max(0, offset - 100))}><ChevronLeft size={14} /> Anterior</button><span className="muted">offset {offset}</span><button className="button button--ghost" disabled={result.next_offset === null} onClick={() => result.next_offset !== null && onPage(result.next_offset)}>Próxima <ChevronRight size={14} /></button></div>
   </div>
 }
 
-function SolutionCard({ solution }: { solution: QuerySolution }) {
-  const href = proofHrefForSolution(solution)
+function SolutionCard({ solution, contextFilter }: { solution: QuerySolution; contextFilter?: Record<string, string> }) {
+  const href = proofHrefForSolution(solution, contextFilter)
   return <details open>
     <summary><span className="mono">{solution.key.map(displayValue).join(' · ')}</span><span className="solution-summary-actions"><StatusBadge status={solution.explicit ? 'explicit' : 'derived'} /><Link className="support-link" to={href} onClick={(event) => event.stopPropagation()}>Abrir prova</Link></span></summary>
     <div className="solution-details">

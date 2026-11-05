@@ -15,6 +15,29 @@ from typing import Mapping
 Scalar = str | int | float | bool | None
 ScalarIdentity = tuple[str, object]
 FactIdentity = tuple[str, str, ScalarIdentity]
+Context = tuple[tuple[str, str], ...]
+
+
+def normalize_context(value: Mapping[str, str] | Context | None) -> Context:
+    """Normalize bounded, exact-match labels attached to one evidence record."""
+    if value is None:
+        return ()
+    items = tuple(value.items()) if isinstance(value, Mapping) else value
+    if not isinstance(items, tuple) or len(items) > 32:
+        raise ValueError("context must contain at most 32 string labels")
+    normalized: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, tuple) or len(item) != 2:
+            raise TypeError("context entries must be key/value pairs")
+        key, label = item
+        if not isinstance(key, str) or not key.strip() or len(key) > 64:
+            raise ValueError("context keys must be non-empty strings of at most 64 characters")
+        if not isinstance(label, str) or not label.strip() or len(label) > 256:
+            raise ValueError("context values must be non-empty strings of at most 256 characters")
+        if key in normalized:
+            raise ValueError(f"duplicate context key: {key}")
+        normalized[key] = label
+    return tuple(sorted(normalized.items()))
 
 
 def scalar_identity(value: Scalar) -> ScalarIdentity:
@@ -120,6 +143,7 @@ class FactEvidence:
 
     provenance: Provenance | None
     confidence: float | None
+    context: Context = ()
 
     def __post_init__(self) -> None:
         if self.provenance is not None and not isinstance(self.provenance, Provenance):
@@ -130,6 +154,11 @@ class FactEvidence:
             or not 0.0 <= float(self.confidence) <= 1.0
         ):
             raise ValueError("evidence confidence must be in [0, 1] or None")
+        object.__setattr__(self, "context", normalize_context(self.context))
+
+    @property
+    def context_map(self) -> dict[str, str]:
+        return dict(self.context)
 
 
 @dataclass(frozen=True, eq=False)
@@ -355,6 +384,7 @@ class KnowledgeStore:
         provenance: Provenance | None = None,
         confidence: float | None = None,
         properties: Mapping[str, Scalar] | None = None,
+        context: Mapping[str, str] | None = None,
     ) -> tuple[Fact, bool]:
         subject = self._entity_id(subject)
         predicate = self._predicate(predicate)
@@ -362,6 +392,7 @@ class KnowledgeStore:
         if provenance is not None and not isinstance(provenance, Provenance):
             raise TypeError("provenance must be Provenance or None")
         confidence = self._confidence(confidence)
+        normalized_context = normalize_context(context)
         if subject not in self._entities:
             raise KeyError(f"unknown subject entity: {subject}")
         key = (subject, predicate, scalar_identity(object))
@@ -381,7 +412,7 @@ class KnowledgeStore:
                 if current is ...:
                     merged_properties[name] = value
                     changed = True
-            evidence = FactEvidence(provenance, confidence)
+            evidence = FactEvidence(provenance, confidence, normalized_context)
             evidence_records = existing.evidence_records
             if evidence not in evidence_records:
                 evidence_records = evidence_records + (evidence,)
@@ -406,7 +437,7 @@ class KnowledgeStore:
             provenance,
             confidence,
             self._properties(properties),
-            (FactEvidence(provenance, confidence),),
+            (FactEvidence(provenance, confidence, normalized_context),),
         )
         self._next_fact_id += 1
         self._facts[fact.fact_id] = fact
@@ -472,6 +503,43 @@ class KnowledgeStore:
                 continue
             result.append(fact)
         return tuple(result)
+
+    def contextual_view(self, context_filter: Mapping[str, str] | None) -> "KnowledgeStore":
+        """Return a read-only-by-convention store view containing matching evidence.
+
+        A non-empty filter matches only when one evidence record contains every
+        requested key/value pair. Unscoped legacy evidence is excluded. The view
+        is built before inference so rules cannot join facts from other contexts.
+        """
+        normalized = normalize_context(context_filter)
+        if not normalized:
+            return self
+        required = dict(normalized)
+        view = KnowledgeStore(history_limit=self.history_limit)
+        view._entities = self._entities.copy()
+        view._next_fact_id = self._next_fact_id
+        view.version = self.version
+        view.structural_version = self.structural_version
+        for fact in self._facts.values():
+            matching = tuple(
+                evidence for evidence in fact.evidence_records
+                if all(evidence.context_map.get(key) == value for key, value in required.items())
+            )
+            if not matching:
+                continue
+            primary = matching[0]
+            scoped_fact = replace(
+                fact,
+                provenance=primary.provenance,
+                confidence=primary.confidence,
+                evidence_records=matching,
+            )
+            view._facts[scoped_fact.fact_id] = scoped_fact
+            view._fact_keys[fact_key_identity(scoped_fact.key)] = scoped_fact.fact_id
+            view._by_subject.setdefault(scoped_fact.subject, set()).add(scoped_fact.fact_id)
+            view._by_predicate.setdefault(scoped_fact.predicate, set()).add(scoped_fact.fact_id)
+            view._by_object.setdefault(scalar_identity(scoped_fact.object), set()).add(scoped_fact.fact_id)
+        return view
 
     def query_property(self, entity_id: str, name: str, value: Scalar = ...) -> tuple[Entity, ...]:
         entity = self.get_entity(entity_id)

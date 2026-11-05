@@ -19,6 +19,8 @@ export function installApiMock(overrides: Record<string, unknown> = {}) {
       '/entities?search=&offset=0&limit=50': { items: [], total: 0, offset: 0, limit: 50, next_offset: null },
       '/facts?subject=&predicate=&offset=0&limit=50': { items: [], total: 0, offset: 0, limit: 50, next_offset: null },
       '/history?offset=0&limit=50': { items: [], total: 0, offset: 0, limit: 50, next_offset: null },
+      '/rules': { items: [] },
+      '/queries': { solutions: [], proven: false, complete: true, stop_reason: null, next_offset: null, operations: 0, facts_examined: 0, conclusions_produced: 0, strategy: 'forward', decision_ns: 0, execution_ns: 0, rationale: null },
       ...overrides,
     }
     const body = routes[path]

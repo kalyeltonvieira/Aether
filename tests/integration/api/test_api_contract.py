@@ -384,6 +384,127 @@ class ApiStateContractTests(unittest.TestCase):
                 self.assertTrue(after.json()["proven"])
                 self.assertFalse(after.json()["cache_hit"])
 
+    def test_context_filter_is_evidence_scoped_and_separates_query_cache(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                client.post("/api/v1/entities", json={"entity_id": "alice", "properties": {}}, headers=headers)
+                fact_ids = {}
+                for role, domain in (("analyst", "hr"), ("admin", "security")):
+                    response = client.post(
+                        "/api/v1/facts",
+                        json={
+                            "subject": "alice", "predicate": "role", "object": role,
+                            "object_type": "str", "context": {"domain": domain},
+                        },
+                        headers=headers,
+                    )
+                    self.assertEqual(response.status_code, 201)
+                    self.assertEqual(response.json()["evidence_records"][0]["context"], {"domain": domain})
+                    fact_ids[role] = response.json()["fact_id"]
+
+                payload = {
+                    "subject": "alice", "predicate": "role", "object": "?role",
+                    "strategy": "forward", "context_filter": {"domain": "hr"},
+                }
+                hr = client.post("/api/v1/queries", json=payload)
+                self.assertEqual(hr.status_code, 200)
+                self.assertEqual([item["key"][2] for item in hr.json()["solutions"]], ["analyst"])
+                self.assertEqual(hr.json()["context_fact_count"], 1)
+                self.assertFalse(hr.json()["cache_hit"])
+
+                security = client.post(
+                    "/api/v1/queries", json={**payload, "context_filter": {"domain": "security"}}
+                )
+                self.assertEqual([item["key"][2] for item in security.json()["solutions"]], ["admin"])
+                self.assertFalse(security.json()["cache_hit"])
+                cached_hr = client.post("/api/v1/queries", json=payload)
+                self.assertEqual([item["key"][2] for item in cached_hr.json()["solutions"]], ["analyst"])
+                self.assertTrue(cached_hr.json()["cache_hit"])
+
+                for strategy in ("backward", "hybrid", "adaptive"):
+                    alternate = client.post(
+                        "/api/v1/queries",
+                        json={**payload, "object": "analyst", "object_type": "str", "strategy": strategy},
+                    )
+                    self.assertEqual(alternate.status_code, 200)
+                    self.assertEqual([item["key"][2] for item in alternate.json()["solutions"]], ["analyst"])
+                    self.assertEqual(alternate.json()["context_fact_count"], 1)
+
+                patched = client.patch(
+                    f"/api/v1/facts/{fact_ids['analyst']}",
+                    json={"context": {"domain": "analytics"}},
+                    headers=headers,
+                )
+                self.assertEqual(patched.status_code, 200, patched.text)
+                self.assertEqual(
+                    [item["context"] for item in patched.json()["evidence_records"]],
+                    [{"domain": "analytics"}],
+                )
+
+                invalid = client.post(
+                    "/api/v1/queries", json={**payload, "context_filter": {"domain": 7}}
+                )
+                self.assertEqual(invalid.status_code, 422)
+
+    def test_context_filter_prevents_cross_context_rule_joins_and_applies_to_explanations(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                for entity_id in ("alice", "team-1"):
+                    client.post("/api/v1/entities", json={"entity_id": entity_id, "properties": {}}, headers=headers)
+                for subject, predicate, obj, domain in (
+                    ("alice", "member_of", "team-1", "hr"),
+                    ("team-1", "classification", "restricted", "security"),
+                ):
+                    self.assertEqual(
+                        client.post(
+                            "/api/v1/facts",
+                            json={"subject": subject, "predicate": predicate, "object": obj,
+                                  "object_type": "str", "context": {"domain": domain}},
+                            headers=headers,
+                        ).status_code,
+                        201,
+                    )
+                rule = client.post(
+                    "/api/v1/rules",
+                    json={
+                        "rule_id": "membership-classification",
+                        "antecedents": [
+                            {"subject": "?person", "predicate": "member_of", "object": "?team"},
+                            {"subject": "?team", "predicate": "classification", "object": "?label"},
+                        ],
+                        "consequent": {"subject": "?person", "predicate": "access_level", "object": "?label"},
+                    },
+                    headers=headers,
+                )
+                self.assertEqual(rule.status_code, 201)
+
+                unscoped = client.post(
+                    "/api/v1/queries",
+                    json={"subject": "alice", "predicate": "access_level", "object": "restricted", "strategy": "forward"},
+                )
+                self.assertTrue(unscoped.json()["proven"])
+                scoped_payload = {
+                    "subject": "alice", "predicate": "access_level", "object": "restricted",
+                    "strategy": "forward", "context_filter": {"domain": "hr"},
+                }
+                scoped = client.post("/api/v1/queries", json=scoped_payload)
+                self.assertFalse(scoped.json()["proven"])
+                self.assertEqual(scoped.json()["context_fact_count"], 1)
+                explanation = client.post(
+                    "/api/v1/explanations",
+                    json={"subject": "alice", "predicate": "access_level", "object": "restricted",
+                          "context_filter": {"domain": "hr"}},
+                )
+                self.assertEqual(explanation.status_code, 200)
+                self.assertEqual(explanation.json()["proofs"], [])
+                self.assertEqual(explanation.json()["context_fact_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

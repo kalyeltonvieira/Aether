@@ -91,7 +91,7 @@ Todas as páginas usam o formato:
 
 `GET /api/v1/entities?search=&offset=0&limit=100` lista entidades; `GET /entities/{entity_id}` lê uma entidade; `POST /entities` recebe `{entity_id,properties}`; `PATCH /entities/{entity_id}` recebe `{properties}`. Os dois últimos são mutações de operador.
 
-`GET /api/v1/facts?subject=&predicate=&offset=0&limit=100` lista fatos. Cada fato inclui `fact_id`, sujeito, predicado, objeto escalar bruto, `object_type`, propriedades, confiança, `provenances` e `evidence_records`. Os objetos preservam `bool`, `int`, `float`, `str` e `null` como identidades distintas. `POST /facts` aceita:
+`GET /api/v1/facts?subject=&predicate=&offset=0&limit=100` lista fatos. Cada fato inclui `fact_id`, sujeito, predicado, objeto escalar bruto, `object_type`, propriedades, confiança, `provenances` e `evidence_records` (cada evidência carrega proveniência, confiança e `context`). Os objetos preservam `bool`, `int`, `float`, `str` e `null` como identidades distintas. `POST /facts` aceita:
 
 ```json
 {
@@ -101,11 +101,12 @@ Todas as páginas usam o formato:
   "object_type": "str",
   "properties": {},
   "confidence": 0.9,
-  "provenance": {"source": "mail-import", "evidence_type": "message"}
+  "provenance": {"source": "mail-import", "evidence_type": "message"},
+  "context": {"domain": "communications", "period": "2026"}
 }
 ```
 
-`PATCH /facts/{fact_id}` valida uma substituição. Se sujeito, predicado ou objeto mudarem, a resposta informa `replaced_fact_id`, `new_fact_id` e `key_changed`; evidências anteriores são carregadas para a nova chave. `DELETE /facts/{fact_id}` remove o fato e retorna o registro removido.
+`context` aceita até 32 pares de strings (chaves até 64 caracteres, valores até 256). O contexto é por evidência, não parte da identidade relacional. `PATCH /facts/{fact_id}` valida uma substituição. Se sujeito, predicado ou objeto mudarem, a resposta informa `replaced_fact_id`, `new_fact_id` e `key_changed`; evidências anteriores são carregadas para a nova chave. `DELETE /facts/{fact_id}` remove o fato e retorna o registro removido.
 
 `GET /history` retorna mudanças reais do store com sequência, timestamp, operação, versões e snapshots `before`/`after`. O histórico está sujeito ao limite de retenção do `KnowledgeStore`.
 
@@ -115,7 +116,7 @@ Todas as páginas usam o formato:
 
 ## Consultas, inferência e provas
 
-`POST /api/v1/queries` recebe sujeito, predicado, objeto, `strategy` opcional (`forward`, `backward`, `hybrid` ou `adaptive`), `offset` e `limit`. Quando omitida, `strategy` usa `default_strategy` da configuração; `adaptive` continua disponível somente como estratégia explícita de consulta. Cada solução inclui `object_type`, e cada nó da árvore `explanation` inclui `key_type` com os tipos escalares de `[subject,predicate,object]`, preservando links recursivos para objetos `int` e `float`. A resposta expõe soluções e metadados do motor real:
+`POST /api/v1/queries` recebe sujeito, predicado, objeto, `strategy` opcional (`forward`, `backward`, `hybrid` ou `adaptive`), `offset`, `limit` e `context_filter` opcional. Quando omitida, `strategy` usa `default_strategy` da configuração; `adaptive` continua disponível somente como estratégia explícita de consulta. Cada solução inclui `object_type`, e cada nó da árvore `explanation` inclui `key_type` com os tipos escalares de `[subject,predicate,object]`, preservando links recursivos para objetos `int` e `float`. A resposta expõe soluções e metadados do motor real:
 
 ```json
 {
@@ -136,7 +137,9 @@ Todas as páginas usam o formato:
 
 Consultas abertas usam `forward` ou `adaptive`. Metas abertas em `backward`/`hybrid` são rejeitadas com erro útil; essas estratégias são dirigidas a metas fechadas. `complete:false` nunca é convertido em uma negativa semântica. O padrão é `forward`: medições da decisão adaptativa não justificam pagar seu overhead em toda consulta.
 
-`POST /inference` recomputa o fechamento real e é mutação de operador. `POST /explanations` recebe uma chave e retorna provas alternativas, regra/revisão, depth, suportes, fato explícito e proveniência; nós da árvore também incluem `key_type`. O backend não inventa soluções quando o motor não prova a chave.
+Um `context_filter` não vazio seleciona fatos quando **uma mesma evidência** contém todos os pares solicitados com igualdade exata. A seleção antecede todas as estratégias de inferência, evitando joins entre fatos elegíveis em contextos distintos. Fatos/evidências antigos sem contexto permanecem disponíveis sem filtro, mas não correspondem a um filtro não vazio. Respostas contextualizadas incluem `context_filter` e `context_fact_count`; o filtro integra a identidade da entrada de cache e é preservado nos links do Proof Explorer. Esse campo é metadado de recuperação, não controle de acesso. Consulte [Contexto por evidência](CONTEXTUAL_EVIDENCE.md) para limites e exemplos.
+
+`POST /inference` recomputa o fechamento real e é mutação de operador. `POST /explanations` recebe uma chave e o mesmo `context_filter` opcional, e retorna provas alternativas, regra/revisão, depth, suportes, fato explícito e proveniência; nós da árvore também incluem `key_type`. O backend não inventa soluções quando o motor não prova a chave no conjunto selecionado.
 
 ## Memória, configuração e métricas
 

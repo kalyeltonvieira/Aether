@@ -77,6 +77,7 @@ class KnowledgeEventProcessor:
                     provenance=provenance,
                     confidence=payload.get("confidence"),
                     properties=payload.get("properties"),
+                    context=payload.get("context"),
                 )
             elif event.event_type == "fact.remove":
                 fact_id = payload["fact_id"]
