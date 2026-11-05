@@ -106,11 +106,11 @@ Medianas observadas por consulta holdout para trabalho e memória/manutenção (
 
 ## 5. Estado da matriz CI e pendências
 
-**Primeira CI remota:** [run 42086731767](https://github.com/kalyeltonvieira/Aether/actions/runs/42086731767) terminou com falha global. Linux passou em Python 3.10, 3.12 e 3.13 (3/3); macOS passou em Python 3.10 e 3.13 (2/3), enquanto Python 3.12 foi cancelado ao atingir o limite de 15 minutos do runner; Windows falhou em Python 3.10, 3.12 e 3.13 (0/3). As três falhas Windows tinham a mesma causa: a DLL Rust continuava carregada por uma referência ctypes após liberar o grafo, e os `TemporaryDirectory` de `test_aether_native`/`test_phase5_bench` não conseguiam apagá-la (`PermissionError`). A correção subsequente faz `RustDynamicGraph.close()` liberar a referência ctypes e descarrega a handle explícita da fixture antes de cleanup; os 153 testes passaram localmente depois dessa mudança. Essa correção foi publicada em commit posterior na mesma branch; a CI de acompanhamento ainda precisa terminar antes de afirmar que Windows foi validado. Não declarar a matriz totalmente verde nem contar o job macOS cancelado como aprovação.
+**CI de acompanhamento:** [run 42089464628](https://github.com/kalyeltonvieira/Aether/actions/runs/42089464628) também terminou globalmente com falha. Linux passou em 3/3 e macOS passou em 3/3; Windows ainda falhou em 3/3 com `PermissionError` ao apagar `aether_native.dll` durante os teardowns de `test_aether_native` e `test_phase5_bench`. Além de liberar a referência ctypes ao fechar o grafo e coletar ciclos, a revisão seguinte move a DLL compilada para diretório exclusivo dentro de `build/` (ignorado pelo Git), separado dos `TemporaryDirectory` de dados que os testes limpam. O teste local dos 21 casos nativos/Phase 5 passou; **a nova CI ainda precisa confirmar a correção em Windows**. A matriz continua pendente e não deve ser declarada verde.
 
 Pendências/limites remanescentes:
 
-1. A CI de acompanhamento da correção Windows precisa terminar: confirmar Windows 3/3 e investigar qualquer timeout/cancelamento no macOS 3.12; a primeira matriz não foi verde.
+1. A próxima CI precisa validar se o diretório separado `build/` resolve o bloqueio DLL; confirmar Windows 3/3 e todos os outros seis jobs verdes. A segunda execução ficou Windows 0/3, Linux 3/3 e macOS 3/3.
 2. Os workloads são sintéticos e pequenos; os números não se generalizam a grafos de produção ou às projeções SNAP.
 3. Remoções e mudanças de regras usam recomputação conservadora quando a completude incremental não é demonstrável.
 4. A integração Rust é medida quanto a conversão/construção/refresh; o controlador não seleciona um motor simbólico Rust e nenhum ganho end-to-end é alegado.
@@ -132,10 +132,10 @@ Pendências/limites remanescentes:
 | Índice Rust detecta snapshot obsoleto | Atendido | Testes de stale, refresh e semântica direta/transitiva. |
 | Python/Rust semanticamente equivalentes | Atendido nos testes executados | Matriz completa de SO ainda pendente. |
 | Controlador avaliado em sessões reais de queries | Atendido como sequência sintética | 300 sessões; holdout congelado; resultados sem alegação de superioridade. |
-| CI efetivamente passa nas plataformas | Parcial na primeira execução; follow-up pendente | Linux 3/3, macOS 2/3 (um cancelado) e Windows 0/3 na run 42086731767; falhas Windows corrigidas localmente, aguardar novo workflow. |
+| CI efetivamente passa nas plataformas | Parcial; follow-up pendente | Run 42086731767: Linux 3/3, macOS 2/3 (um cancelado), Windows 0/3. Run 42089464628: Linux 3/3, macOS 3/3, Windows 0/3. Correção de paths das DLLs ainda sem CI. |
 | Benchmarks reproduzíveis | Atendido | 30 seeds/família, hashes, CSV/JSON e metadados. |
 | Histórico anterior preservado | Atendido localmente | A branch parte da `main` auditada; sem merge automático. |
 
 ## 7. Publicação
 
-A branch `phase8` foi publicada sem merge automático. A primeira CI detectou e motivou a correção de DLL Windows; a confirmação dos checks da atualização é pendência até nova run concluir.
+A branch `phase8` foi publicada sem merge automático. A CI encontrou problemas reais de teardown DLL no Windows; liberação ctypes, GC e paths de build separados estão na branch, mas só podem ser considerados resolvidos após a próxima matriz verde.
