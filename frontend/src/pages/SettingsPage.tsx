@@ -53,7 +53,10 @@ export function SettingsPage() {
           <NumberField label="Memória máxima (bytes)" value={form.memory_max_bytes} onChange={(value) => update('memory_max_bytes', value)} disabled={!canWrite} />
         </div>
       </Panel>
-      <Panel title="Componentes e persistência" description="Toggles refletem capacidades do processo, não preferências cosméticas."><div className="toggle-grid"><Toggle label="Persistência" checked={form.persistence_enabled} onChange={(value) => update('persistence_enabled', value)} disabled={!canWrite} /><Toggle label="Rust engine" checked={form.rust_enabled} onChange={(value) => update('rust_enabled', value)} disabled={!canWrite} /></div></Panel>
+      <Panel title="Componentes e persistência" description="O estado exibido vem da configuração ativa do processo.">
+        <InfoCallout tone="warning">Persistência é definida na inicialização e não pode ser alternada nesta tela. Para mudar, edite `config.json` no diretório de dados com o Studio parado (por padrão, `.aether-data/config.json`) e reinicie. Desativá-la não apaga arquivos antigos; dados do modo desativado ficam somente em memória.</InfoCallout>
+        <div className="toggle-grid"><Toggle label="Persistência (startup)" checked={form.persistence_enabled} onChange={() => undefined} disabled /><Toggle label="Rust engine" checked={form.rust_enabled} onChange={(value) => update('rust_enabled', value)} disabled={!canWrite} /></div>
+      </Panel>
       {canWrite ? <button className="button button--primary" type="submit" disabled={saving}><Save size={16} />{saving ? 'Validando…' : 'Salvar configuração'}</button> : <div className="callout callout--warning"><Settings2 size={16} />Somente operadores podem alterar configuração. Snapshot atual exibido sem alterações locais.</div>}
     </form>
   </div>

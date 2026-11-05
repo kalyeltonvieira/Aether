@@ -2,16 +2,19 @@ import os
 import tempfile
 import time
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 try:
     import jwt
     from fastapi.testclient import TestClient
     from aether.interfaces.api.app import create_app
+    from aether.interfaces.api.services.state import _atomic_json
 except ImportError:  # optional API dependencies are intentionally skippable
     jwt = None
     TestClient = None
     create_app = None
+    _atomic_json = None
 
 
 @unittest.skipIf(TestClient is None or jwt is None, "API dependencies are not installed")
@@ -90,6 +93,21 @@ class ManagedPreviewAuthTests(unittest.TestCase):
                     client.cookies.set("webdev_app_session", self._jwt(app_id="other-project"))
                     self.assertEqual(client.get("/api/v1/auth/session").status_code, 401)
 
+    def test_preview_session_expires_at_validated_jwt_expiry(self):
+        with self._environment():
+            with tempfile.TemporaryDirectory() as data_dir:
+                app = create_app(data_dir=data_dir, auth_mode="manus")
+                with TestClient(app) as client:
+                    expires_at = int(time.time()) + 120
+                    client.cookies.set("webdev_app_session", self._jwt(expires_at=expires_at))
+                    with patch("aether.interfaces.api.services.auth.time.time", return_value=expires_at - 10):
+                        created = client.get("/api/v1/auth/session")
+                        self.assertEqual(created.status_code, 200)
+                        session_id = next(iter(app.state.auth.sessions))
+                        self.assertEqual(app.state.auth.sessions[session_id].expires_at, expires_at)
+                    with patch("aether.interfaces.api.services.auth.time.time", return_value=expires_at + 1):
+                        self.assertEqual(client.get("/api/v1/auth/session").status_code, 401)
+
 
 @unittest.skipIf(TestClient is None, "API dependencies are not installed")
 class ApiStateContractTests(unittest.TestCase):
@@ -136,6 +154,11 @@ class ApiStateContractTests(unittest.TestCase):
                     headers=headers,
                 )
                 self.assertEqual(config.status_code, 200)
+                toggle_off = client.put(
+                    "/api/v1/config", json={"persistence_enabled": False}, headers=headers
+                )
+                self.assertEqual(toggle_off.status_code, 422)
+                self.assertTrue(client.get("/api/v1/config").json()["persistence_enabled"])
 
             restarted = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
             with TestClient(restarted) as client:
@@ -150,6 +173,54 @@ class ApiStateContractTests(unittest.TestCase):
                 self.assertIs(facts["bool"]["object"], True)
                 self.assertEqual(facts["int"]["object"], 1)
                 self.assertEqual(facts["null"]["object"], None)
+
+    def test_persistence_disabled_uses_ephemeral_stores_and_requires_restart_to_toggle(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            root = Path(data_dir)
+            legacy_files = {
+                "knowledge.json": b"do-not-load-knowledge",
+                "rules.json": b"do-not-load-rules",
+                "events.sqlite3": b"do-not-open-events",
+                "memory.sqlite3": b"do-not-open-memory",
+            }
+            for filename, payload in legacy_files.items():
+                (root / filename).write_bytes(payload)
+            _atomic_json(root / "config.json", {"persistence_enabled": False})
+
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                state = app.state.studio
+                self.assertFalse(state.config["persistence_enabled"])
+                self.assertEqual(state.events.path, ":memory:")
+                self.assertIsNone(state.memory.cold_store)
+                self.assertEqual(state.store.stats()["facts"], 0)
+                self.assertEqual(state.rules, [])
+
+                toggle_on = client.put(
+                    "/api/v1/config", json={"persistence_enabled": True}, headers=headers
+                )
+                self.assertEqual(toggle_on.status_code, 422)
+                self.assertIn("startup-only", toggle_on.json()["detail"])
+                self.assertFalse(client.get("/api/v1/config").json()["persistence_enabled"])
+
+                created = client.post(
+                    "/api/v1/entities",
+                    json={"entity_id": "ephemeral", "properties": {}},
+                    headers=headers,
+                )
+                self.assertEqual(created.status_code, 201)
+                queued = client.post(
+                    "/api/v1/events",
+                    json={"event_type": "entity.add", "source": "test", "payload": {"entity_id": "event-only"}},
+                    headers=headers,
+                )
+                self.assertEqual(queued.status_code, 202)
+                state.memory.put("test:ephemeral", b"ephemeral")
+
+            for filename, payload in legacy_files.items():
+                self.assertEqual((root / filename).read_bytes(), payload)
 
     def test_default_strategy_event_batch_graph_pagination_and_status(self):
         with tempfile.TemporaryDirectory() as data_dir:

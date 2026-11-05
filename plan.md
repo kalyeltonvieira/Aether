@@ -1,8 +1,15 @@
 # Plano de evolução do AETHER
 
-## Escopo e princípios
+## Estado atual e roadmap
+O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`; CI para esse SHA passou 13/13 jobs (Python Ubuntu/macOS/Windows 3.10/3.12/3.13, Studio Ubuntu/Windows e E2E Ubuntu/Windows; [run 42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). A Etapa 1 permanece em andamento, não sendo o projeto considerado concluído.
 
-Fonte de requisitos: `/home/ubuntu/upload/pasted_content.txt`, o plano integral fornecido pelo usuário. A implementação continua na branch `evolution/aether-platform`, sem alterar `main`, `phase7`, `phase7new` ou `phase8`, sem merge automático e com commits separados por etapa. As etapas A–D estão registradas nos commits `9a8e99f`, `7c8d7e7`, `abd6b4b` e `a153a0e`; a etapa E conclui a API e AETHER Studio.
+1. **Consolidação e confiabilidade — em andamento:** os três achados da auditoria foram corrigidos em `fix/stage1-reliability`: expiração Preview limitada ao JWT, persistência desligada em todos os stores de domínio no startup e OAuth state reservado antes de I/O. Validação local aprovada (unittest 207/6 skips, pytest 202/21 skips por falta de `rustc`; frontend typecheck, 16 testes e build; wheel inclui `benchmarks.phase9`). CI da branch e merge ainda pendentes.
+2. **Núcleo cognitivo — parcial:** núcleo simbólico existente, mas memória contextual e aprendizado de estruturas ainda não implementados. Inclui memória contextual, aprendizado/revisão, conflitos, raciocínio, recuperação e insuficiência.
+3. **Autonomia e eficiência medida:** benchmarks delimitados; controller adaptativo perdeu para fixo em 9/10 famílias e não foi promovido; energia não medida.
+4. **Integrações — não implementada:** LLM, linguagem natural, documentos, multimodalidade, ferramentas e agentes; LLM não é fonte de verdade.
+
+## Contexto histórico e princípios
+Os blocos e checklists A–E adiante são snapshots preservados, não o roadmap corrente. A implementação e o estado do Studio descritos neles são registros históricos.
 
 O motor permanece independente do frontend: a camada HTTP integra as APIs públicas de `KnowledgeStore`, inferência, memória, eventos e métricas; React não importa módulos Python. Valores de status, contagens e gráficos vêm do processo real. Métricas não disponíveis serão `null`/“indisponível”, nunca números de demonstração. Sem execução arbitrária de Python, sem CORS `*` e sem publicação pública nesta etapa. Como o Preview é acessível pela rede, autenticação e proteção de sessão entram desde o início: Manus OAuth gerenciado, validação JWT/projeto/expiração, operadores por allowlist e token de operador somente em instalação independente explicitamente configurada. Cookies são HttpOnly; mutações exigem CSRF; origens WebSocket/CORS são restritas. Os comandos locais prendem a API ao loopback. Persistência usa snapshots verificáveis e SQLite; não habilitar banco ou Redis gerenciados.
 
@@ -40,12 +47,8 @@ scripts/
 
 Arquivos Python novos serão incluídos nos pacotes/setuptools e CI existentes; dependências web serão fixadas no lockfile. A documentação existente de Windows/Linux será atualizada, não substituída por caminhos absolutos. O frontend inclui manifest de rotas e testes de componentes; o backend terá contrato OpenAPI, validação e testes que exercitam o núcleo real.
 
-## Etapas
-
-A–D: melhorias já commitadas e documentadas, com a evidência e limitações registradas em `docs/architecture/`. A etapa D ainda recebe uma atualização curta de seleção sensível à pressão de memória, depois de medir e testar a implementação.
-
-E: implementar primeiro o contrato e estado da API, em seguida páginas e componentes, ligar cada tela a endpoints reais, implementar o fluxo CRUD → inferência → prova → remoção/recomputação → histórico, conectar WebSocket e persistência, finalizar docs/scripts multiplataforma e validar o conjunto. Nada será publicado em serviço público; a branch GitHub autorizada só será publicada quando todas as etapas forem verificadas.
-
+## Snapshot histórico: etapas A–E
+O plano anterior organizava trabalho em fases A–E para conhecimento, memória/eventos/eficiência e Studio/API. Mantém-se para proveniência; não significa conclusão do roadmap de quatro etapas acima.
 ## Condições de suporte e limites
 
 Python ≥3.10 e Rust 1.99.1 seguem o projeto. A sessão atual comprova diretamente Linux ARM64; Windows/Linux x86_64 precisam de execução real em runners correspondentes ou serão marcados pendentes, nunca inferidos. O modo Studio é local/desenvolvimento com autenticação. Deploy público, contas multiusuário e banco gerenciado ficam fora desta entrega. Sessões, autorização, CSRF e login serão testados, sem alegar auditoria de produção.

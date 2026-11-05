@@ -140,7 +140,7 @@ Consultas abertas usam `forward` ou `adaptive`. Metas abertas em `backward`/`hyb
 
 ## Memória, configuração e métricas
 
-`GET /memory` expõe estatísticas reais da `AdaptiveMemory`, cache de consultas limitado, padrões operacionais limitados e indicação de cold tier persistente. Não expõe payloads arbitrários do cache. `PUT /memory/budget` recebe `{max_bytes}` e altera o orçamento residente sem apagar o cold store.
+`GET /memory` expõe estatísticas reais da `AdaptiveMemory`, cache de consultas limitado, padrões operacionais limitados e indicação de cold tier persistente. Não expõe payloads arbitrários do cache. `PUT /memory/budget` recebe `{max_bytes}` e altera o orçamento residente sem apagar o cold store. Com persistência desativada no startup, o cold tier não abre SQLite, `persistent` é falso e dados evictados não são recuperáveis após encerramento.
 
 `GET /config` retorna:
 
@@ -158,13 +158,13 @@ Consultas abertas usam `forward` ou `adaptive`. Metas abertas em `backward`/`hyb
 }
 ```
 
-`PUT /config` aceita esses campos com limites. `default_strategy` aceita somente `forward`, `backward` ou `hybrid`; `adaptive` deve ser enviado explicitamente em cada consulta. Paths e segredos não são configuráveis via API. `rust_enabled:true` só é aceito quando a biblioteca nativa foi realmente localizada e carregada; a API não compila nem presume Rust durante o status. `join_planner=input` é o padrão medido; `selective` é opt-in.
+`PUT /config` aceita esses campos com limites. `default_strategy` aceita somente `forward`, `backward` ou `hybrid`; `adaptive` deve ser enviado explicitamente em cada consulta. `persistence_enabled` é startup-only: alterá-lo via API retorna 422, pois os handles SQLite e os componentes de memória são escolhidos ao criar o estado. Para mudar o modo, edite `config.json` no diretório de dados com o Studio encerrado (por padrão, `.aether-data/config.json`) e reinicie. Quando falso, conhecimento/regras não são carregados nem gravados, a fila de eventos usa SQLite `:memory:` e a memória não tem cold store em disco. `config.json` continua sendo escrito para preservar o modo escolhido; arquivos de dados anteriores não são removidos e ficam ignorados até a persistência ser reativada. Apague-os manualmente apenas se a intenção for eliminar os dados antigos. Paths e segredos não são configuráveis via API. `rust_enabled:true` só é aceito quando a biblioteca nativa foi realmente localizada e carregada; a API não compila nem presume Rust durante o status. `join_planner=input` é o padrão medido; `selective` é opt-in.
 
 `GET /metrics?period=60` retorna amostras observadas em ring buffer, sem preencher histórico vazio com dados fabricados. CPU/RSS podem ser `null` quando o host não disponibiliza a medida; `rust_operations` também é `null` enquanto não houver instrumentação real das operações nativas. `GET /status` reúne estado do core/API, contagens, latência, memória, atividade, alertas, métricas do processo e `rust:{status,available,operations,last_error}`. O objeto `core` inclui `complete` e `stale_reason`; seu `status` é `ready` e `conclusions` contém a contagem somente quando o `ReasonerState` está completo para o store atual. Caso contrário, `core.status` é `incomplete` e `core.conclusions` é `null`. `available` só fica verdadeiro após verificação efetiva da biblioteca.
 
 ## Eventos
 
-`POST /events` enfileira evento validado (`entity.add`, `fact.add` ou `fact.remove`) com source, payload opcionalmente provenance e `event_id` idempotente. `GET /events?event_type=&status=&after=&limit=` lê o log durável com sequência, tentativa, estado e erro. `POST /events/process` aceita `{limit?:number}`; quando `limit` é omitido ou `null`, usa `event_batch_size` da configuração. `POST /events/{event_id}/retry` reenfileira uma falha terminal.
+`POST /events` enfileira evento validado (`entity.add`, `fact.add` ou `fact.remove`) com source, payload opcionalmente provenance e `event_id` idempotente. `GET /events?event_type=&status=&after=&limit=` lê o log sequenciado com tentativa, estado e erro; ele é durável somente com persistência habilitada e fica em SQLite `:memory:` quando desabilitada. `POST /events/process` aceita `{limit?:number}`; quando `limit` é omitido ou `null`, usa `event_batch_size` da configuração. `POST /events/{event_id}/retry` reenfileira uma falha terminal.
 
 O Event Engine é **at-least-once**, não exactly-once. A fila e o snapshot de conhecimento são transações distintas. Handlers são idempotentes por evento/proveniência; uma queda depois do efeito e antes do ack pode entregar novamente. Processar um evento que muda o store invalida o cache de consultas e produz notificações de conhecimento e de eventos.
 
@@ -179,7 +179,7 @@ A primeira mensagem é um snapshot. Depois, o servidor publica apenas mensagens 
 - `metrics`: amostra de métricas, inclusive em resposta ao texto `ping`;
 - `snapshot`: estado inicial.
 
-Mensagens diferentes de `ping` não executam operações; retornam erro. A conexão revalida a sessão após cada mensagem e em intervalos limitados, encerrando após logout, expiração de sessão ou falha da credencial Preview. O cliente deve refazer as leituras REST relevantes após uma notificação e limpar o socket ao desmontar a tela.
+Mensagens diferentes de `ping` não executam operações; retornam erro. A conexão revalida a sessão após cada mensagem e em intervalos limitados, encerrando após logout ou expiração da sessão. A sessão Preview opaca não reconsulta o provedor; sua expiração é limitada pelo `exp` do JWT validado na emissão, mas revogação antecipada não pode ser detectada sem introspecção. O cliente deve refazer as leituras REST relevantes após uma notificação e limpar o socket ao desmontar a tela.
 
 ## Erros e limites de segurança
 

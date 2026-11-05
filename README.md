@@ -4,7 +4,7 @@ AETHER reúne protótipos de grafos mutáveis e raciocínio simbólico sobre fat
 
 ## Estado e arquitetura
 
-A branch `main` contém o histórico da Phase 7new; os relatórios de fases são registros históricos separados, não alegações atuais. Consulte [`docs/phases/PHASE7NEW_REPORT.md`](docs/phases/PHASE7NEW_REPORT.md) para o estado histórico anterior e [`docs/architecture/OVERVIEW.md`](docs/architecture/OVERVIEW.md) para a arquitetura organizada.
+O Studio AETHER foi integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`; a CI desse SHA passou 13/13 jobs (run [42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). A branch local `fix/stage1-reliability` corrige os três achados de confiabilidade: sessão Preview limitada ao `exp` do JWT, stores de domínio realmente efêmeros quando `persistence_enabled=false` e consumo do OAuth state antes de I/O externo. Nesta branch, `unittest` passou 207 testes (6 skips ligados à ausência de `rustc`: cinco testes FFI e uma classe de concorrência); `pytest` passou 202 (21 skips pela mesma ausência); frontend typecheck, 16 testes e build passaram. O smoke build do wheel também inclui `benchmarks.phase9` sem o aviso de pacote omitido. A CI desta branch ainda não foi executada e ela não foi mesclada; a Etapa 1 segue em andamento até CI/revisão/merge. Consulte o [roadmap atual](plan.md), o [TODO](TODO.md) e o [relatório de evolução](docs/development/EVOLUTION_REPORT.md); relatórios de fases anteriores são snapshots históricos, não declarações atuais.
 
 O código instalável está em `src/aether/`: `core/` guarda conhecimento estruturado; `reasoning/` agrupa inferência forward/backward/híbrida e dependências; `graph/` contém grafos, componentes e indexação; `memory/` abriga cache e políticas; `temporal/` contém eventos/checkpoints; `native/` mantém bindings Python e fonte Rust; `adapters/` integra dados SNAP. Harnesses ficam em `benchmarks/`, testes em `tests/`, manifestos em `datasets/manifests/`, resultados históricos em `results/` e documentação em `docs/`. O [mapeamento de módulos](docs/architecture/MODULES.md) e o [grafo de dependências](docs/architecture/DEPENDENCIES.md) detalham as fronteiras.
 
@@ -42,7 +42,7 @@ python -m unittest discover -s tests -v
 python -m unittest discover -s tests/portability -v
 ```
 
-Consulte o [guia de testes](docs/development/TESTING.md). A compatibilidade de plataforma deve ser julgada somente pelos resultados da CI registrados para a branch/commit em questão. Consulte [suporte por plataforma](docs/architecture/PLATFORM_SUPPORT.md); Linux ARM64 só será declarado suportado após execução real em runner apropriado.
+Consulte o [guia de testes](docs/development/TESTING.md). Sem `rustc`, os testes FFI são explicitamente ignorados; a execução local desta branch registrou seis skips ligados à ausência do toolchain (cinco testes FFI e uma classe de concorrência). A CI instala Rust e executa a cobertura nativa. A compatibilidade de plataforma deve ser julgada somente pelos resultados da CI registrados para a branch/commit em questão. Consulte [suporte por plataforma](docs/architecture/PLATFORM_SUPPORT.md); Linux ARM64 só será declarado suportado após execução real em runner apropriado.
 
 ## Benchmarks e datasets
 
@@ -60,7 +60,7 @@ O código é distribuído sob MIT (consulte `LICENSE`). Para reporte responsáve
 
 ## AETHER Studio — evolução da plataforma
 
-A branch `evolution/aether-platform` acrescenta evidências múltiplas e paginação, snapshots semânticos verificáveis, cold tier SQLite, padrões globalmente limitados, Event Engine durável, planejamento seletivo medido e a camada independente FastAPI + React/TypeScript/Vite. As branches históricas e seus resultados permanecem preservados; esta entrega não faz merge automático em `main`.
+O Studio (FastAPI + React/TypeScript/Vite) e a evolução do núcleo estão integrados em `main` desde `0fd08c016e36779d61f0a140b0b8ca517e9c298d`; não se trata mais de uma entrega exclusivamente em branch separada. Os resultados e históricos continuam preservados.
 
 ```bash
 python -m pip install -e ".[api]"
@@ -85,7 +85,7 @@ O [relatório de eficiência](docs/architecture/EFFICIENCY.md) registra ganho de
 
 O pipeline de API/Studio foi medido novamente com 20 seeds de calibração e 10 de holdout, oráculo correto nos 30; o [relatório do benchmark API](docs/architecture/API_BENCHMARK.md) registra o custo total e suas limitações. Capturas reais da sessão browser E2E, incluindo prova com suporte e grafo, estão na [galeria do Studio](docs/development/STUDIO_SCREENSHOTS.md). A fixture e a sessão dessas imagens são efêmeras, não dados de produção.
 
-Resultados por SO, capturas reais, testes e pendências são registrados no [relatório de evolução por fase](docs/development/EVOLUTION_REPORT.md). Linux ARM64 é a validação local desta sessão; Windows/Linux x86_64 dependem de resultados efetivos da CI. Não confunda instruções/matriz configurada com aprovação de execução, nem Preview com publicação pública.
+A CI do commit integrado a `main` passou 13/13 jobs: Python Ubuntu/macOS/Windows em 3.10/3.12/3.13, Studio Ubuntu/Windows e E2E Ubuntu/Windows ([run 42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). As correções locais da `fix/stage1-reliability` passaram as validações descritas acima, mas ainda aguardam CI própria e merge. A Etapa 1 permanece em andamento; não declare o projeto concluído. Resultados, capturas e ressalvas constam do [relatório de evolução](docs/development/EVOLUTION_REPORT.md). Preview não significa publicação pública.
 
 ![Proof Explorer real no E2E, com conclusão derivada, regra e link ao fato de suporte](docs/screenshots/studio/proofs.png)
 

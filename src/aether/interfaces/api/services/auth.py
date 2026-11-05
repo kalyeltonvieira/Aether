@@ -142,6 +142,7 @@ class AuthService:
         open_id: str | None,
         token_login: bool = False,
         auth_source: str | None = None,
+        expires_at: float | None = None,
     ) -> Session:
         self._cleanup()
         now = time.time()
@@ -152,7 +153,7 @@ class AuthService:
             self._role_for(open_id, token_login=token_login),
             secrets.token_urlsafe(32),
             now,
-            now + self.session_ttl_seconds,
+            min(now + self.session_ttl_seconds, expires_at) if expires_at is not None else now + self.session_ttl_seconds,
             source,
         )
         self.sessions[session.session_id] = session
@@ -177,9 +178,9 @@ class AuthService:
         """Resolve a request session, optionally binding it to Preview JWT identity.
 
         The returned boolean is true only when a new cookie session was created.
-        A Preview session is never authorized from an unverified or expired JWT,
-        and an already-issued Preview session is revoked when its JWT no longer
-        validates or changes identity.
+        A Preview session is never authorized from an unverified or expired JWT;
+        its expiry is bounded by the JWT expiry and maximum session TTL. JWTs are
+        not introspected again, so later revocation cannot be detected.
         """
         # In managed mode the same cookie name is used for both the platform's
         # injected JWT and our short-lived opaque session. Recognize an issued
@@ -189,10 +190,11 @@ class AuthService:
             return session, False
         if self.mode != "manus" or not preview_token:
             return None, False
-        identity = self.preview_identity(preview_token)
-        if identity is None:
+        verified = self._preview_claims(preview_token)
+        if verified is None:
             return None, False
-        return self.create_session(open_id=identity, auth_source="preview"), True
+        identity, token_expiry = verified
+        return self.create_session(open_id=identity, auth_source="preview", expires_at=token_expiry), True
 
     def revoke(self, session_id: str | None) -> None:
         if session_id:
@@ -267,6 +269,9 @@ class AuthService:
             or state_data.get("redirectUri") != record["redirect_uri"]
         ):
             raise PermissionError("OAuth state binding is invalid")
+        # Reserve synchronously before the first await. Provider errors leave it
+        # consumed; starting a fresh OAuth flow is safer than permitting replay.
+        record["used"] = True
         api_url = os.environ.get("MANUS_OAUTH_API_URL")
         project_id = os.environ.get("MANUS_PROJECT_ID")
         redirect_uri = record["redirect_uri"]
@@ -298,10 +303,13 @@ class AuthService:
         open_id = identity.get("openId")
         if not isinstance(open_id, str) or not open_id:
             raise RuntimeError("Manus OAuth identity response did not contain openId")
-        record["used"] = True
         return self.create_session(open_id=open_id, auth_source="oauth")
 
     def preview_identity(self, token: str | None) -> str | None:
+        verified = self._preview_claims(token)
+        return verified[0] if verified is not None else None
+
+    def _preview_claims(self, token: str | None) -> tuple[str, float] | None:
         if self.mode != "manus" or not token:
             return None
         secret = os.environ.get("MANUS_JWT_SECRET")
@@ -316,4 +324,10 @@ class AuthService:
         if token_project is None or str(token_project) != str(project_id):
             return None
         open_id = payload.get("openId") or payload.get("open_id") or payload.get("sub")
-        return open_id if isinstance(open_id, str) and open_id else None
+        if not isinstance(open_id, str) or not open_id:
+            return None
+        try:
+            expiry = float(payload["exp"])
+        except (KeyError, TypeError, ValueError):
+            return None
+        return open_id, expiry

@@ -1,4 +1,7 @@
-# Instalação e execução — AETHER
+# Instalação e execução — AETHER (documento histórico da Fase 5)
+
+> Este guia registra os procedimentos e medições da Fase 5; seus comandos, versões e afirmações de suporte são snapshots daquela fase, não o setup atual. Para instalação e desenvolvimento atuais, use o [setup geral](SETUP.md), [setup Windows](SETUP_WINDOWS.md), [setup Linux](SETUP_LINUX.md) e [guia AETHER Studio](WEB_STUDIO.md).
+
 
 ## Requisitos
 

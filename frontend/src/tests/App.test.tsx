@@ -26,4 +26,13 @@ describe('Studio shell', () => {
     await userEvent.click(screen.getByRole('link', { name: /settings/i }))
     await waitFor(() => expect(screen.getByText(/somente operadores podem alterar configuração/i)).toBeInTheDocument())
   })
+
+  it('shows persistence as startup-only and disables its runtime toggle for operators', async () => {
+    installApiMock({ '/auth/session': { authenticated: true, role: 'operator', auth_mode: 'manus', csrf_token: 'operator-csrf', open_id: 'openid:operator' } })
+    renderApp()
+    await screen.findByRole('heading', { name: 'Dashboard' })
+    await userEvent.click(screen.getByRole('link', { name: /settings/i }))
+    expect(await screen.findByText(/persistência é definida na inicialização/i)).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /persistência \(startup\)/i })).toBeDisabled()
+  })
 })

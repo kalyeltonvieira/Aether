@@ -1,4 +1,7 @@
-# Projeto Aether — protótipo mínimo executável
+# Projeto Aether — protótipo mínimo executável (arquivo histórico v1)
+
+> Este diretório preserva o protótipo e seus resultados como registro histórico; não descreve o estado atual do AETHER. Para setup e uso atuais, consulte [setup geral](../../docs/development/SETUP.md), [setup Windows](../../docs/development/SETUP_WINDOWS.md), [setup Linux](../../docs/development/SETUP_LINUX.md) e [guia do Studio](../../docs/development/WEB_STUDIO.md).
+
 
 Este protótipo testa uma hipótese limitada da arquitetura: **em uma sequência de inserções de arestas e consultas de alcançabilidade, manter o fecho transitivo atualizado pode reduzir o trabalho repetido por consulta**. Não é um sistema de inteligência geral, não usa LLM e não afirma aprender linguagem ou conhecimento aberto.
 
