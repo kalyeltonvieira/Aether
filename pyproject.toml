@@ -28,6 +28,33 @@ Repository = "https://github.com/kalyeltonvieira/Aether"
 Issues = "https://github.com/kalyeltonvieira/Aether/issues"
 
 [tool.setuptools]
+package-dir = {"" = "src", "benchmarks" = "benchmarks", "aether.resources.datasets" = "datasets"}
+packages = [
+  "aether",
+  "aether.core",
+  "aether.core.knowledge",
+  "aether.reasoning",
+  "aether.memory",
+  "aether.graph",
+  "aether.graph.indexing",
+  "aether.temporal",
+  "aether.native",
+  "aether.native.rust",
+  "aether.adapters",
+  "aether.resources",
+  "aether.resources.datasets",
+  "aether.resources.datasets.manifests",
+  "benchmarks",
+  "benchmarks.baseline",
+  "benchmarks.phase2",
+  "benchmarks.phase3",
+  "benchmarks.phase4",
+  "benchmarks.phase5",
+  "benchmarks.phase6",
+  "benchmarks.phase7",
+  "benchmarks.phase7new",
+  "benchmarks.phase8",
+]
 py-modules = [
   "aether_adaptive_controller",
   "aether_adaptive_memory",
@@ -53,4 +80,10 @@ py-modules = [
   "aether_reasoning_controller",
   "aether_snap_semantic",
   "aether_temporal",
+  "phase8_bench",
 ]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"aether.native" = ["rust/*.rs"]
+"aether.resources.datasets" = ["manifests/*.json"]
