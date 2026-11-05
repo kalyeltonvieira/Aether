@@ -1,6 +1,6 @@
 import unittest
 
-from aether.reasoning.consistency import ConsistencyValidator
+from aether.reasoning.consistency import ConsistencyValidator, IncompatibilityRule
 from aether.reasoning.inference import InferenceEngine, Pattern, Rule
 from aether.core.knowledge.store import KnowledgeStore, Provenance
 
@@ -51,7 +51,10 @@ class ConsistencyValidatorTests(unittest.TestCase):
     def test_contradictory_rules_are_reported(self):
         first = Rule("r1", (Pattern("?x", "p", "?y"),), Pattern("?x", "q", "?y"))
         second = Rule("r2", (Pattern("?x", "p", "?y"),), Pattern("?x", "not_q", "?y"))
-        report = ConsistencyValidator(self.store).validate(rules=(first, second))
+        report = ConsistencyValidator(self.store).validate(
+            rules=(first, second),
+            incompatibilities=(IncompatibilityRule("q", "not_q"),),
+        )
         self.assertIn("contradictory_rules", {issue.code for issue in report.issues})
 
     def test_inference_dependency_is_validated_against_current_store(self):

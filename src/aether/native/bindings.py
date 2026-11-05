@@ -451,9 +451,14 @@ class RustDynamicGraph:
         with lock:
             handle = getattr(self, "_handle", None)
             if handle:
-                self._lib.aether_graph_free(handle)
+                library = self._lib
+                library.aether_graph_free(handle)
             self._handle = None
             self._closed = True
+            # A ctypes library handle pins the DLL on Windows. Once the native
+            # graph is freed, dropping this reference allows temporary build
+            # directories to be removed and the library to be replaced.
+            self._lib = None
 
     def __enter__(self):
         self._ensure_open()

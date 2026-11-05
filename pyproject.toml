@@ -53,6 +53,7 @@ packages = [
   "benchmarks.phase6",
   "benchmarks.phase7",
   "benchmarks.phase7new",
+  "benchmarks.phase8",
 ]
 py-modules = [
   "aether_adaptive_controller",
@@ -69,6 +70,7 @@ py-modules = [
   "aether_incremental",
   "aether_incremental_components",
   "aether_inference",
+  "aether_metrics",
   "aether_knowledge",
   "aether_knowledge_rust",
   "aether_native",
@@ -78,6 +80,7 @@ py-modules = [
   "aether_reasoning_controller",
   "aether_snap_semantic",
   "aether_temporal",
+  "phase8_bench",
 ]
 include-package-data = true
 

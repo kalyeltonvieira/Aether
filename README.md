@@ -52,7 +52,7 @@ Dados SNAP grandes não são incluídos no pacote. O manifesto canônico está e
 
 ## Histórico preservado
 
-Os relatórios, auditorias e procedimentos históricos foram movidos sem apagar seu conteúdo: [fases](docs/phases/), [auditorias](docs/audits/) e [decisões arquiteturais](docs/decisions/). Artefatos brutos da base `main` continuam organizados em `results/phase2/`, `phase3/`, `phase4/`, `phase5/`, `phase6/`, `phase7/` e `phase7new/`; seus valores e proveniência não foram regenerados nesta migração. Resultados da branch `phase8` não fazem parte desta base `main` e não são incorporados nesta tarefa. O arquivo original da primeira versão permanece em `archive/v1/`.
+Os relatórios, auditorias e procedimentos históricos foram movidos sem apagar seu conteúdo: [fases](docs/phases/), [auditorias](docs/audits/) e [decisões arquiteturais](docs/decisions/). Artefatos históricos das fases 2 a 8 ficam em `results/`; os valores e a proveniência anteriores à reorganização foram preservados, incluindo os resultados da Phase 8 integrados ao `main`. O código de benchmark da Phase 8 está em `benchmarks/phase8/`, e seus relatórios em `docs/phases/`. O arquivo original da primeira versão permanece em `archive/v1/`.
 
 ## Licença e segurança
 

@@ -39,7 +39,7 @@ class BackwardInferenceTests(unittest.TestCase):
         proof = BackwardInference(self.store, [self.rule]).prove(("d", "link", "a"))
         self.assertFalse(proof.proven)
         self.assertFalse(proof.complete)
-        self.assertEqual(proof.stop_reason, "limit")
+        self.assertEqual(proof.stop_reason, "unbound_variables")
 
     def test_depth_limit_is_explicit(self):
         proof = BackwardInference(self.store, [self.rule]).prove(("a", "link", "d"), BackwardLimits(max_depth=1))

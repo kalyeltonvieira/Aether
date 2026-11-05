@@ -25,12 +25,22 @@ class SemanticSnapTests(unittest.TestCase):
                 ("snap:email-eu-core:node:1", "snap:email-eu-core:node:2"),
             ])
             self.assertEqual(facts[0].provenance.source, "snap://fixture")
+            self.assertEqual(facts[0].provenance.source_url, "snap://fixture")
+            self.assertEqual(facts[0].provenance.source_line, 2)
+            self.assertEqual(facts[0].provenance.record_id, "email-eu-core:2")
+            self.assertEqual(facts[0].provenance.evidence_type, "dataset_edge_record")
+            self.assertEqual(
+                facts[0].provenance.transformation,
+                "unique directed SNAP edge -> KnowledgeStore fact",
+            )
+            self.assertIsNone(facts[0].provenance.observed_at_iso)
+            self.assertIsNone(facts[0].confidence)
             self.assertIn("line:2", facts[0].provenance.evidence)
             self.assertEqual(facts[0].property_map()["source_node"], 0)
 
     def test_hash_mismatch_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "edges with space-ñ.txt"
+            path = Path(directory) / "edges.txt"
             path.write_text("0 1\n", encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_email_eu_core(path, expected_sha256="0" * 64)

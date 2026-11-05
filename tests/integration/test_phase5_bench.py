@@ -1,7 +1,9 @@
 import hashlib
+import gc
 import shutil
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 
 from aether.native.bindings import compile_native
@@ -31,11 +33,12 @@ class Phase5BenchmarkTests(unittest.TestCase):
         if shutil.which("rustc"):
             suffix = ".dll" if __import__("sys").platform == "win32" else ".dylib" if __import__("sys").platform == "darwin" else ".so"
             filename = "aether_native" + suffix if suffix == ".dll" else "libaether_native" + suffix
-            build_dir = Path(__file__).resolve().parents[2] / "build" / "test-phase5"
+            build_dir = Path(__file__).resolve().parent / "build" / f"test-phase5-{uuid.uuid4().hex}"
             cls.library = str(compile_native(build_dir / filename))
 
     @classmethod
     def tearDownClass(cls):
+        gc.collect()
         cls.tmp.cleanup()
 
     def test_parser_records_duplicates_loops_and_keeps_directed_ids(self):

@@ -1,15 +1,17 @@
 import ctypes
+import gc
 import shutil
 import sys
 import tempfile
 import unittest
+import uuid
 from array import array
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from aether.graph.dynamic import neighbors_within_hops, shortest_path
+from aether_dynamic import neighbors_within_hops, shortest_path
 from aether.native.bindings import RustDynamicGraph, compile_native
-from benchmarks.phase4.phase4_bench import run_worker
+from phase4_bench import run_worker
 
 
 class RustDynamicGraphTests(unittest.TestCase):
@@ -20,7 +22,7 @@ class RustDynamicGraphTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix="aether-native-test-")
         suffix = ".dll" if sys.platform == "win32" else ".dylib" if sys.platform == "darwin" else ".so"
         filename = "aether_native" + suffix if suffix == ".dll" else "libaether_native" + suffix
-        build_dir = Path(__file__).resolve().parents[2] / "build" / "test-native"
+        build_dir = Path(__file__).resolve().parent / "build" / f"test-native-{uuid.uuid4().hex}"
         cls.library = compile_native(build_dir / filename)
         cls.lib = ctypes.CDLL(str(cls.library))
         cls.lib.aether_graph_abi_version.argtypes = []
@@ -43,6 +45,7 @@ class RustDynamicGraphTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        gc.collect()
         if hasattr(cls, "tmp"):
             cls.tmp.cleanup()
 

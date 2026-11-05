@@ -51,7 +51,7 @@ def current_rss_bytes() -> int | None:
     windows = _windows_memory_counters()
     if windows is not None:
         return windows[0]
-    if platform.system() == "Linux":
+    if sys.platform.startswith("linux"):
         try:
             for line in open("/proc/self/status", encoding="ascii"):
                 if line.startswith("VmRSS:"):
@@ -66,6 +66,8 @@ def peak_rss_bytes() -> int | None:
     windows = _windows_memory_counters()
     if windows is not None:
         return windows[1]
+    if sys.platform == "win32":
+        return None
     if _resource is None:
         return None
     try:
@@ -125,3 +127,24 @@ def memory_delta_bytes(after: int | None, before: int | None) -> int | None:
     if after is None or before is None:
         return None
     return after - before
+
+
+def total_physical_memory_bytes() -> int | None:
+    """Compatibility name used by Phase 8 benchmark metadata."""
+    return total_memory_bytes()
+
+
+def cpu_model() -> str | None:
+    """Return a best-effort processor model without fabricating unknown values."""
+    if sys.platform == "linux":
+        try:
+            with open("/proc/cpuinfo", encoding="utf-8", errors="ignore") as stream:
+                for line in stream:
+                    if line.lower().startswith(("model name", "hardware")):
+                        value = line.split(":", 1)[-1].strip()
+                        if value:
+                            return value
+        except OSError:
+            pass
+    value = platform.processor().strip()
+    return value or None
