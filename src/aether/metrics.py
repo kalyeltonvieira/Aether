@@ -53,9 +53,10 @@ def current_rss_bytes() -> int | None:
         return windows[0]
     if sys.platform.startswith("linux"):
         try:
-            for line in open("/proc/self/status", encoding="ascii"):
-                if line.startswith("VmRSS:"):
-                    return int(line.split()[1]) * 1024
+            with open("/proc/self/status", encoding="ascii") as stream:
+                for line in stream:
+                    if line.startswith("VmRSS:"):
+                        return int(line.split()[1]) * 1024
         except (OSError, ValueError, IndexError):
             return None
     return None
@@ -109,9 +110,10 @@ def total_memory_bytes() -> int | None:
         return None
     if platform.system() == "Linux":
         try:
-            for line in open("/proc/meminfo", encoding="ascii"):
-                if line.startswith("MemTotal:"):
-                    return int(line.split()[1]) * 1024
+            with open("/proc/meminfo", encoding="ascii") as stream:
+                for line in stream:
+                    if line.startswith("MemTotal:"):
+                        return int(line.split()[1]) * 1024
         except (OSError, ValueError, IndexError):
             return None
     try:
@@ -120,6 +122,40 @@ def total_memory_bytes() -> int | None:
         return int(pages) * int(page_size)
     except (AttributeError, OSError, ValueError):
         return None
+
+
+def available_memory_bytes() -> int | None:
+    """Return currently available physical memory, or ``None`` if unavailable."""
+    if sys.platform == "win32":
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+        state = MEMORYSTATUSEX()
+        state.dwLength = ctypes.sizeof(state)
+        try:
+            if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(state)):
+                return int(state.ullAvailPhys)
+        except (AttributeError, OSError):
+            return None
+        return None
+    if platform.system() == "Linux":
+        try:
+            with open("/proc/meminfo", encoding="ascii") as stream:
+                for line in stream:
+                    if line.startswith("MemAvailable:"):
+                        return int(line.split()[1]) * 1024
+        except (OSError, ValueError, IndexError):
+            return None
+    return None
 
 
 def memory_delta_bytes(after: int | None, before: int | None) -> int | None:

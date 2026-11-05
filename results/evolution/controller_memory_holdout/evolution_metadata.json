@@ -1,0 +1,13 @@
+{
+  "benchmark": "existing phase8 harness on evolution controller with memory features",
+  "git_head": "a153a0eaf37a063fa1cd6525edde5869b8ee792f",
+  "source_sha256": {
+    "src/aether/reasoning/controller.py": "62ec4f675d3350d9af11e3e9bdeee6be7c0c9c7e778ef58ab2fec7a73be54028",
+    "src/aether/metrics.py": "0b61ab7438b16c60d4b56f907836a7776a449571aec94663b0a404962e1aee7e",
+    "benchmarks/phase8/phase8_bench.py": "2ba7aef9768662e0c5840fe1729c43e8f9bd49e6acfc077717eb96065c4dc9b4"
+  },
+  "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "system": "Linux-6.18.38+-aarch64-with-glibc2.39",
+  "decision_memory_measurement_scope": "available host physical memory; cgroup-aware capacity not claimed",
+  "status": "all 2400 rows checked, 0 mismatches, 240 incremental parity checks 0 failures"
+}

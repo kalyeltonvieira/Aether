@@ -19,8 +19,24 @@ O benchmark foi executado em Python 3.12.3, Linux ARM64 (`aarch64`), 6 CPUs disp
 
 ## Rust e concorrência
 
-A integração Python/Rust existente continua cobrindo o índice de relações de grafo, com equivalência e invalidação de snapshots nos testes da fase 8. Esta etapa não moveu joins simbólicos para Rust: a medição mostra o ganho em ordenação de trabalho em Python, enquanto não foi produzido benchmark end-to-end que inclua conversão, construção e FFI para justificar um port. O Event Engine usa claims transacionais SQLite e preserva FIFO por serialização de um evento ativo; a escolha é de correção/ordem, não uma alegação de throughput paralelo.
+A integração Python/Rust existente continua cobrindo o índice de relações de grafo, com equivalência e invalidação de snapshots nos testes da fase 8. Esta etapa não moveu joins simbólicos para Rust: a medição mostra ganho na ordenação de trabalho em Python; o benchmark nativo abaixo mede benefício em reachability de grafo, não em unificação/provas. O Event Engine usa claims transacionais SQLite e preserva FIFO por serialização de um evento ativo; a escolha é de correção/ordem, não uma alegação de throughput paralelo.
 
 ## Limites
 
-Os workloads medidos são sintéticos e têm duas famílias, não representam ainda as dez famílias do harness da fase 8 nem carga real de Studio. Latência curta é sensível ao hardware e ao ruído do processo; p95 aqui é o percentil observado das 30 medianas por seed, não SLA de produção. Medição de energia não está disponível. A promoção do planner por padrão exige novos holdouts reais e benchmarking em Windows/Linux x86_64.
+Os workloads do planner seletivo têm duas famílias sintéticas; o controller foi medido separadamente nas dez famílias do harness existente. Nenhum deles representa carga real de produção do Studio. Latência curta é sensível ao hardware e ao ruído do processo; p95 do planner é o percentil observado das 30 medianas por seed, não SLA de produção. Medição de energia não está disponível. A promoção do planner por padrão exige novos holdouts reais e benchmarking em Windows/Linux x86_64.
+
+## Controller com disponibilidade de memória
+
+O controller passou a amostrar memória física disponível e total com APIs portáveis; quando o host não fornece uma medida confiável, os campos são `None`. Pressão alta aumenta de maneira conservadora os priors de forward/híbrido e separa buckets históricos, mas não altera completude nem aceita transformar uma busca incompleta em resposta negativa. A amostra mede o host, não uma quota de cgroup; não deve ser apresentada como orçamento reservado à aplicação.
+
+A execução complementar do harness existente da fase 8 cobriu **dez famílias × 30 seeds**, três consultas de calibração e cinco holdout por sessão: 2.400 consultas, zero divergências do oráculo, 240 comparações incrementais sem falhas e nenhum controller incompleto no holdout. Conversão/construção/refresh Rust foram medidos pelo harness existente, sem supor superioridade end-to-end. Os resultados estão em [controller_memory_holdout](../../results/evolution/controller_memory_holdout/summary.json), acompanhados de CSV, metadata e hashes adicionais.
+
+O custo total adaptativo inclui decisão e execução. Ele perdeu para forward fixo equivalente em nove das dez famílias. Na família `open_variable_queries`, ganhou em 56,7% dos pares, mas escolheu necessariamente a mesma rota forward — isso não demonstra superioridade de seleção. Em consultas pequenas, a decisão custou mediana de cerca de 83–103 µs e dominou a execução. Portanto, **adaptive permanece uma opção experimental explícita**, enquanto a API/Studio utiliza forward fixo como padrão. A correção passou; a alegação de melhor eficiência geral não passou e não é feita.
+
+## Benchmark nativo de custo completo
+
+O novo [phase9_native.py](../../benchmarks/phase9/phase9_native.py) mediu duas famílias de grafos sintéticos de 128 nós, com 30 seeds por família e split 20/10. O ciclo inclui construção, 128 consultas, remoção de 20 arestas, mais 128 consultas, escrita/leitura JSON e reconstrução do grafo; custos de conversão e FFI são incluídos nos tempos Rust, com compilação do cdylib reportada separadamente. Um BFS exaustivo independente verificou Python, Rust individual, Rust em lote e as duas recuperações: zero divergências.
+
+No holdout, o ciclo Rust foi 3,694× mais rápido no grafo esparso e 1,561× no denso, vencendo em 10/10 seeds em cada família. Consultas Rust em lote tiveram medianas de 0,171 ms (esparso) e 0,209 ms (denso), incluindo packing/FFI; chamadas individuais tiveram 0,353 ms e 0,351 ms. Os [dados completos](../../results/evolution/phase9_native.json) registram fonte/hashes, CPU, RSS e capacidades aproximadas de memória. As estimativas de heap Python e capacidade Rust não são medidas equivalentes de memória total.
+
+Isso confirma benefício no backend de **reachability de grafo já existente**, não autoriza substituir joins/provas simbólicas por Rust nem demonstra paralelismo multiusuário. A recuperação medida é reconstrução a partir de uma lista JSON verificada pelo oráculo, não crash-consistency de um storage nativo. Compilação é custo de startup separado; resultados curtos não podem amortizá-lo automaticamente. Nenhum número de energia foi inventado.
