@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping
 
 from aether.reasoning.inference import (
     DerivationProof,
@@ -64,9 +65,11 @@ class IncrementalInference:
         *,
         provenance: Provenance | None = None,
         confidence: float | None = None,
+        properties: Mapping[str, Scalar] | None = None,
     ) -> tuple[Fact, IncrementalUpdate]:
         explicit_fact, inserted = self.store.add_fact(
-            subject, predicate, object, provenance=provenance, confidence=confidence
+            subject, predicate, object, provenance=provenance, confidence=confidence,
+            properties=properties,
         )
         if not inserted:
             return explicit_fact, IncrementalUpdate(False, (), 0, 0, self._stop_reason is None, self._stop_reason)

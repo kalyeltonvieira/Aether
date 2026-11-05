@@ -132,11 +132,13 @@ class KnowledgeReasoner:
         *,
         provenance: Provenance | None = None,
         confidence: float | None = None,
+        properties: Mapping[str, Scalar] | None = None,
     ) -> tuple[Fact, bool]:
         self._synchronize_versions()
         if self._state is not None and self._state.complete_for_current_store:
             fact, update = self._incremental.add_fact(
-                subject, predicate, object, provenance=provenance, confidence=confidence
+                subject, predicate, object, provenance=provenance, confidence=confidence,
+                properties=properties,
             )
             if not update.inserted:
                 return fact, False
@@ -156,7 +158,8 @@ class KnowledgeReasoner:
             return fact, True
 
         fact, inserted = self.store.add_fact(
-            subject, predicate, object, provenance=provenance, confidence=confidence
+            subject, predicate, object, provenance=provenance, confidence=confidence,
+            properties=properties,
         )
         if inserted and self._state is not None:
             stale_reason = self._state.stale_reason or "new_fact_requires_recompute"

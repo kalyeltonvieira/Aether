@@ -8,7 +8,7 @@ src/aether/              API instalável e implementação Python
   reasoning/             forward, backward, híbrido, incremental e controller
   memory/                cache, padrões, memória operacional SQLite e políticas
   graph/                 DynamicGraph, consultas, componentes e índice Rust
-  temporal/              eventos e checkpoints
+  temporal/              Event Engine SQLite, replay e checkpoints; logs de grafo em memória
   native/                wrapper ctypes e fonte Rust FFI
   adapters/              projeção auditável dos dados SNAP
 benchmarks/              harnesses e plots por fase

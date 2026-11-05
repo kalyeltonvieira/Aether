@@ -6,7 +6,7 @@
 | Inferência/reasoning | `aether.reasoning.inference`, `backward`, `hybrid`, `incremental`, `reasoner`, `controller`, `dependencies`, `consistency` |
 | Grafos | `aether.graph.dynamic`, `engine`, `components`, `incremental_components`, `parallel`, `indexing.rust_knowledge` |
 | Memória/políticas | `aether.memory.cache`, `adaptive_controller`, `adaptive_storage` (SQLite cold tier), `patterns` |
-| Temporal | `aether.temporal.events`, `checkpoints` |
+| Temporal | `aether.temporal.engine` (fila/log SQLite, retries, replay e checkpoints), `knowledge` (handlers no KnowledgeReasoner), `events`, `checkpoints` |
 | Native | `aether.native.bindings` e `aether.native/rust/aether_native.rs` |
 | Adapters | `aether.adapters.snap_semantic` |
 | Métricas de ferramenta | `aether.metrics` (portabilidade de medições, não política do grafo) |
