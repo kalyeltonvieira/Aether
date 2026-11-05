@@ -42,7 +42,7 @@ The package targets Python 3.10+ and keeps its core Python runtime dependency-fr
 - Scanned relative Markdown links under `docs/`; no broken links remained after correcting the Phase 5 research link.
 - `git diff --check` passed. Final setuptools build emitted no setuptools warnings.
 
-These checks were executed on the current Linux sandbox; they do not substitute for the pending remote matrix or a native Windows/macOS environment.
+These checks were executed on the current Linux sandbox; the remote CI matrix result is recorded separately below.
 
 ## Branch separation and publication status
 
@@ -55,4 +55,3 @@ The architecture branch was created from `main` at `a50b265d187041f0491fdfad2b7c
 - Linux ARM64 was not a CI matrix target in the audited workflow; no ARM64-specific compatibility claim is made.
 - Full SNAP datasets are external and are not bundled. Reproducing real-data benchmarks requires fetching the manifest-listed data and checking their recorded hashes.
 - Legacy shims are intentionally retained for compatibility and can be deprecated only through a separately announced transition.
-- Linux ARM64 is outside this nine-job matrix and was not validated by this run.
