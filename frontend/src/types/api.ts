@@ -63,7 +63,17 @@ export interface Fact {
   evidence_records: EvidenceRecord[]
 }
 export interface Provenance { source: string; evidence_type?: string | null; timestamp_ns?: number | null; detail?: string | null; [key: string]: JsonValue | undefined }
-export interface EvidenceRecord { provenance: Provenance | null; confidence: number | null; context?: Record<string, string> }
+export interface EvidenceRecord { evidence_id: string; provenance: Provenance | null; confidence: number | null; context?: Record<string, string> }
+export type KnowledgeStatus = 'explicit' | 'derived' | 'unknown' | 'contradicted' | 'insufficient_evidence'
+export interface ConflictResolution {
+  fact_ids: number[]; selected_fact_ids: number[]; reason: string; resolved_by: string
+  evidence_fingerprint: string; recorded_at_ns: number; invalidated_at_ns: number | null; active: boolean
+}
+export interface KnowledgeAssessment {
+  claim: [string, string, JsonScalar]; status: KnowledgeStatus; explicit_fact_ids: number[]; derived_proofs: ProofItem[]
+  conflicting_fact_ids: number[]; evidence_sufficient: boolean; complete: boolean | null
+  resolution: ConflictResolution | null; note: string
+}
 export interface HistoryRecord { sequence: number; timestamp_ns: number; operation: string; [key: string]: JsonValue | undefined }
 
 export interface GraphNode { id: string; label: string; properties: Record<string, JsonValue> }

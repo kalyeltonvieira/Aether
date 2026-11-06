@@ -505,6 +505,200 @@ class ApiStateContractTests(unittest.TestCase):
                 self.assertEqual(explanation.json()["proofs"], [])
                 self.assertEqual(explanation.json()["context_fact_count"], 1)
 
+    def test_context_filter_preserves_multistep_reasoning_without_cross_context_joins(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                for entity_id in ("alice", "team-1", "project-1"):
+                    client.post("/api/v1/entities", json={"entity_id": entity_id, "properties": {}}, headers=headers)
+                for subject, predicate, obj, domain in (
+                    ("alice", "member_of", "team-1", "hr"),
+                    ("team-1", "owns_project", "project-1", "hr"),
+                    ("project-1", "classification", "restricted", "hr"),
+                ):
+                    created = client.post(
+                        "/api/v1/facts",
+                        json={"subject": subject, "predicate": predicate, "object": obj,
+                              "object_type": "str", "context": {"domain": domain},
+                              "provenance": {"source": f"registry:{predicate}"}},
+                        headers=headers,
+                    )
+                    self.assertEqual(created.status_code, 201, created.text)
+                rules = (
+                    {
+                        "rule_id": "person-project",
+                        "antecedents": [
+                            {"subject": "?person", "predicate": "member_of", "object": "?team"},
+                            {"subject": "?team", "predicate": "owns_project", "object": "?project"},
+                        ],
+                        "consequent": {"subject": "?person", "predicate": "member_project", "object": "?project"},
+                    },
+                    {
+                        "rule_id": "project-access-level",
+                        "antecedents": [
+                            {"subject": "?person", "predicate": "member_project", "object": "?project"},
+                            {"subject": "?project", "predicate": "classification", "object": "?level"},
+                        ],
+                        "consequent": {"subject": "?person", "predicate": "access_level", "object": "?level"},
+                    },
+                )
+                for rule in rules:
+                    self.assertEqual(client.post("/api/v1/rules", json=rule, headers=headers).status_code, 201)
+
+                scoped = client.post(
+                    "/api/v1/queries",
+                    json={"subject": "alice", "predicate": "access_level", "object": "restricted",
+                          "strategy": "forward", "context_filter": {"domain": "hr"}},
+                )
+                self.assertEqual(scoped.status_code, 200, scoped.text)
+                self.assertTrue(scoped.json()["proven"])
+                self.assertTrue(scoped.json()["complete"])
+                self.assertGreaterEqual(len(scoped.json()["solutions"][0]["explanation"]), 1)
+
+                isolated = client.post(
+                    "/api/v1/queries",
+                    json={"subject": "alice", "predicate": "access_level", "object": "restricted",
+                          "strategy": "forward", "context_filter": {"domain": "finance"}},
+                )
+                self.assertEqual(isolated.status_code, 200)
+                self.assertFalse(isolated.json()["proven"])
+
+    def test_consistency_assessment_distinguishes_unknown_from_insufficient_evidence(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                client.post("/api/v1/entities", json={"entity_id": "alice", "properties": {}}, headers=headers)
+                created = client.post(
+                    "/api/v1/facts",
+                    json={"subject": "alice", "predicate": "membership", "object": "active",
+                          "object_type": "str"},
+                    headers=headers,
+                )
+                self.assertEqual(created.status_code, 201)
+
+                insufficient = client.post(
+                    "/api/v1/consistency/assessments",
+                    json={"subject": "alice", "predicate": "membership", "object": "active", "object_type": "str"},
+                )
+                self.assertEqual(insufficient.status_code, 200, insufficient.text)
+                self.assertEqual(insufficient.json()["status"], "insufficient_evidence")
+                self.assertFalse(insufficient.json()["evidence_sufficient"])
+                self.assertTrue(insufficient.json()["complete"])
+
+                unknown = client.post(
+                    "/api/v1/consistency/assessments",
+                    json={"subject": "alice", "predicate": "citizenship", "object": "unknown", "object_type": "str"},
+                )
+                self.assertEqual(unknown.status_code, 200, unknown.text)
+                self.assertEqual(unknown.json()["status"], "unknown")
+                self.assertIn("absence is not falsity", unknown.json()["note"])
+
+    def test_evidence_retraction_and_conflict_review_api_contract(self):
+        with tempfile.TemporaryDirectory() as data_dir:
+            app = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(app) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                headers = {"X-CSRF-Token": login.json()["csrf_token"]}
+                self.assertEqual(
+                    client.post("/api/v1/entities", json={"entity_id": "alice", "properties": {}}, headers=headers).status_code,
+                    201,
+                )
+                alive = client.post(
+                    "/api/v1/facts",
+                    json={"subject": "alice", "predicate": "alive", "object": True,
+                          "object_type": "bool", "provenance": {"source": "witness-a"}},
+                    headers=headers,
+                )
+                dead = client.post(
+                    "/api/v1/facts",
+                    json={"subject": "alice", "predicate": "dead", "object": True,
+                          "object_type": "bool", "provenance": {"source": "witness-b"}},
+                    headers=headers,
+                )
+                self.assertEqual(alive.status_code, 201)
+                self.assertEqual(dead.status_code, 201)
+                alive_id, dead_id = alive.json()["fact_id"], dead.json()["fact_id"]
+                evidence_id = alive.json()["evidence_records"][0]["evidence_id"]
+                self.assertRegex(evidence_id, r"^ev_[0-9a-f]{64}$")
+
+                claim = {
+                    "subject": "alice", "predicate": "alive", "object": True,
+                    "object_type": "bool",
+                    "incompatibilities": [{"predicate_a": "alive", "predicate_b": "dead"}],
+                }
+                assessment = client.post("/api/v1/consistency/assessments", json=claim)
+                self.assertEqual(assessment.status_code, 200, assessment.text)
+                self.assertEqual(assessment.json()["status"], "contradicted")
+                self.assertTrue(assessment.json()["evidence_sufficient"])
+                self.assertEqual(assessment.json()["explicit_fact_ids"], [alive_id])
+                self.assertEqual(assessment.json()["conflicting_fact_ids"], [dead_id])
+
+                review = client.post(
+                    "/api/v1/consistency/resolutions",
+                    json={**claim, "selected_fact_ids": [alive_id], "reason": "Reviewed source records."},
+                    headers=headers,
+                )
+                self.assertEqual(review.status_code, 201, review.text)
+                self.assertEqual(review.json()["assessment"]["status"], "contradicted")
+                self.assertEqual(review.json()["assessment"]["resolution"]["selected_fact_ids"], [alive_id])
+                self.assertEqual(review.json()["resolution"]["resolved_by"], "token-administrator")
+                self.assertTrue(client.get("/api/v1/consistency/resolutions").json()["items"][0]["active"])
+
+                # A new source changes the evidence fingerprint and invalidates the human review.
+                added_source = client.post(
+                    "/api/v1/facts",
+                    json={"subject": "alice", "predicate": "alive", "object": True,
+                          "object_type": "bool", "provenance": {"source": "witness-c"}},
+                    headers=headers,
+                )
+                self.assertEqual(added_source.status_code, 201)
+                self.assertEqual(added_source.json()["fact_id"], alive_id)
+                self.assertEqual(len(added_source.json()["evidence_records"]), 2)
+                self.assertFalse(client.get("/api/v1/consistency/resolutions").json()["items"][0]["active"])
+                stale_review = client.post("/api/v1/consistency/assessments", json=claim)
+                self.assertFalse(stale_review.json()["resolution"])
+
+                missing_csrf = client.delete(f"/api/v1/facts/{alive_id}/evidence/{evidence_id}")
+                self.assertEqual(missing_csrf.status_code, 403)
+                reader_mutation = client.delete(
+                    f"/api/v1/facts/{alive_id}/evidence/{evidence_id}", headers=headers
+                )
+                self.assertEqual(reader_mutation.status_code, 200)
+                self.assertFalse(reader_mutation.json()["fact_deleted"])
+                remaining_id = reader_mutation.json()["fact"]["evidence_records"][0]["evidence_id"]
+                last_evidence = client.delete(
+                    f"/api/v1/facts/{alive_id}/evidence/{remaining_id}", headers=headers
+                )
+                self.assertEqual(last_evidence.status_code, 200, last_evidence.text)
+                self.assertTrue(last_evidence.json()["fact_deleted"])
+                self.assertIsNone(last_evidence.json()["fact"])
+                self.assertEqual(client.get(f"/api/v1/facts/{alive_id}").status_code, 404)
+                self.assertEqual(
+                    client.delete(f"/api/v1/facts/{alive_id}/evidence/not-an-id", headers=headers).status_code,
+                    422,
+                )
+                self.assertEqual(
+                    client.delete(f"/api/v1/facts/{alive_id}/evidence/{remaining_id}", headers=headers).status_code,
+                    404,
+                )
+                history = client.get("/api/v1/history?offset=0&limit=100").json()["items"]
+                self.assertTrue(any(item["operation"] == "fact_evidence_removed" for item in history))
+                self.assertEqual(client.post("/api/v1/auth/logout", headers=headers).status_code, 200)
+                self.assertEqual(client.get("/api/v1/consistency/resolutions").status_code, 401)
+                self.assertEqual(client.post("/api/v1/consistency/assessments", json=claim).status_code, 401)
+
+            restarted = create_app(data_dir=data_dir, auth_mode="token", token="operator-token")
+            with TestClient(restarted) as client:
+                login = client.post("/api/v1/auth/login", json={"token": "operator-token"})
+                self.assertEqual(login.status_code, 200)
+                resolutions = client.get("/api/v1/consistency/resolutions")
+                self.assertEqual(resolutions.status_code, 200)
+                self.assertFalse(resolutions.json()["items"][0]["active"])
+
 
 if __name__ == "__main__":
     unittest.main()

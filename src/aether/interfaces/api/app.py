@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from aether.temporal.engine import BackpressureError
-from aether.interfaces.api.routes import auth, knowledge, reasoning, system
+from aether.interfaces.api.routes import auth, consistency, knowledge, reasoning, system
 from aether.interfaces.api.services.auth import AuthService
 from aether.interfaces.api.services.state import StudioState
 from aether.interfaces.api.websocket.manager import WebSocketManager
@@ -110,6 +110,7 @@ def create_app(
         return {"status": "ok"}
 
     app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(consistency.router, prefix="/api/v1")
     app.include_router(knowledge.router, prefix="/api/v1")
     app.include_router(reasoning.router, prefix="/api/v1")
     app.include_router(system.router, prefix="/api/v1")

@@ -41,11 +41,19 @@ resolution = validator.record_resolution(
 )
 ```
 
+## Exposição REST e Studio
+
+O Studio expõe `evidence_id` na representação de cada evidência. `DELETE /api/v1/facts/{fact_id}/evidence/{evidence_id}` exige sessão de operador e CSRF, usa o `KnowledgeReasoner` sob o lock do estado, persiste a mudança, limpa cache, mantém o fato se houver outra fonte e retorna as estatísticas de invalidação. IDs malformados retornam 422; evidência/fato válido mas inexistente retorna 404. A atividade entra no histórico do store e é publicada como `knowledge.changed`.
+
+`POST /api/v1/consistency/assessments` retorna o status do claim, completude, suficiência de proveniência, fatos conflitantes, provas derivadas e revisão vigente. A aplicação fornece as regras de incompatibilidade explicitamente. `POST /api/v1/consistency/resolutions` exige operador/CSRF e reavalia, sob o lock do estado, que o conflito ainda existe, que a evidência é suficiente e que os IDs selecionados fazem parte daquele conflito; o ator é tomado da sessão autorizada. A revisão é persistida e notificada por `consistency.changed`. `GET /api/v1/consistency/resolutions` lista o ledger, incluindo decisões invalidadas. A tela Knowledge Explorer permite remover suporte individual; Reasoning Console permite avaliar status, selecionar os IDs aceitos e registrar a justificativa.
+
+O assessment e o ledger de revisão REST são globais ao store neste incremento. Revisões condicionadas a `context_filter`, políticas de autoridade entre fontes e inferência contextual automática de incompatibilidades ainda não existem; continuam explícitas e não são inferidas a partir de linguagem natural.
+
 ## Compatibilidade e limites
 
 - Snapshots novos usam schema v4. Snapshots v1 carregam evidências com contexto vazio; snapshots v2 preservam o contexto e inicializam o ledger vazio; snapshots v3 preservam as revisões como histórico invalidadas, exigindo revalidação explícita, pois não registravam invalidação monotônica.
 - O fingerprint depende dos IDs estáveis dos registros de evidência. Confiança continua sendo metadado declarado, não probabilidade calibrada.
 - Uma revisão não valida por si só que a regra de incompatibilidade é correta; regras e seleção continuam decisões explícitas da aplicação/revisor.
-- Descoberta automática de conflito, resolução probabilística, política de autoridade das fontes, API REST e interface visual de revisão ficam fora desta fatia.
+- Descoberta automática de conflito, resolução probabilística e política de autoridade das fontes continuam fora desta fatia. A revisão registrada é auditável, mas não constitui prova de veracidade nem altera o status contradito.
 
 Veja também [Conhecimento e raciocínio](REASONING.md) e [Contexto por evidência](CONTEXTUAL_EVIDENCE.md).

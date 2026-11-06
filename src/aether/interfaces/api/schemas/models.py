@@ -214,6 +214,65 @@ class ExplanationCreate(StrictModel):
         return self
 
 
+class IncompatibilityRuleInput(StrictModel):
+    predicate_a: str = Field(min_length=1, max_length=512)
+    predicate_b: str = Field(min_length=1, max_length=512)
+    object_pairs: list[list[Scalar]] | None = Field(default=None, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_rule(self):
+        if not self.predicate_a.strip() or not self.predicate_b.strip():
+            raise ValueError("incompatibility predicates must be non-empty")
+        if self.predicate_a == self.predicate_b:
+            raise ValueError("incompatibility predicates must be distinct")
+        if self.object_pairs is not None:
+            for index, pair in enumerate(self.object_pairs):
+                if len(pair) != 2:
+                    raise ValueError(f"object_pairs[{index}] must contain exactly two values")
+                for value in pair:
+                    validate_scalar(value, f"object_pairs[{index}]")
+        return self
+
+
+class ConsistencyClaimInput(StrictModel):
+    subject: str = Field(min_length=1, max_length=512)
+    predicate: str = Field(min_length=1, max_length=512)
+    object: Scalar
+    object_type: str | None = None
+    incompatibilities: list[IncompatibilityRuleInput] = Field(default_factory=list, max_length=64)
+
+    @model_validator(mode="after")
+    def validate_claim(self):
+        if not self.subject.strip() or not self.predicate.strip():
+            raise ValueError("subject and predicate must be non-empty")
+        if self.subject.startswith("?") or self.predicate.startswith("?"):
+            raise ValueError("consistency assessments require a ground claim")
+        validate_scalar(self.object, "object")
+        validate_object_type(self.object, self.object_type)
+        if isinstance(self.object, str) and self.object.startswith("?"):
+            raise ValueError("consistency assessments require a ground claim")
+        return self
+
+
+class ConsistencyAssessmentCreate(ConsistencyClaimInput):
+    pass
+
+
+class ConflictResolutionCreate(ConsistencyClaimInput):
+    selected_fact_ids: list[int] = Field(min_length=1, max_length=128)
+    reason: str = Field(min_length=1, max_length=4096)
+
+    @model_validator(mode="after")
+    def validate_resolution(self):
+        if any(isinstance(value, bool) or value < 1 for value in self.selected_fact_ids):
+            raise ValueError("selected_fact_ids must contain positive integers")
+        if len(set(self.selected_fact_ids)) != len(self.selected_fact_ids):
+            raise ValueError("selected_fact_ids must be unique")
+        if not self.reason.strip():
+            raise ValueError("reason must be non-empty")
+        return self
+
+
 class MemoryBudgetUpdate(StrictModel):
     max_bytes: int = Field(ge=1, le=2**40)
 

@@ -8,9 +8,10 @@ export const testStatus: StatusResponse = {
 }
 
 export function installApiMock(overrides: Record<string, unknown> = {}) {
-  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
     const path = url.replace(/^.*\/api\/v1/, '')
+    const method = (init?.method ?? 'GET').toUpperCase()
     const routes: Record<string, unknown> = {
       '/auth/info': { mode: 'manus', login_available: true },
       '/auth/session': { authenticated: true, role: 'reader', auth_mode: 'manus', csrf_token: 'test-csrf', open_id: 'openid:test' },
@@ -20,10 +21,11 @@ export function installApiMock(overrides: Record<string, unknown> = {}) {
       '/facts?subject=&predicate=&offset=0&limit=50': { items: [], total: 0, offset: 0, limit: 50, next_offset: null },
       '/history?offset=0&limit=50': { items: [], total: 0, offset: 0, limit: 50, next_offset: null },
       '/rules': { items: [] },
+      '/consistency/resolutions': { items: [] },
       '/queries': { solutions: [], proven: false, complete: true, stop_reason: null, next_offset: null, operations: 0, facts_examined: 0, conclusions_produced: 0, strategy: 'forward', decision_ns: 0, execution_ns: 0, rationale: null },
       ...overrides,
     }
-    const body = routes[path]
+    const body = routes[`${method} ${path}`] ?? routes[path]
     if (body === undefined) return new Response(JSON.stringify({ detail: `Unmocked route: ${path}` }), { status: 500, headers: { 'content-type': 'application/json' } })
     return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } })
   }))

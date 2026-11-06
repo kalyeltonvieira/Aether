@@ -5,7 +5,12 @@ import { useApiData } from '../hooks/useApiData'
 import { useLiveUpdates } from '../hooks/useLiveUpdates'
 import { useAuth } from '../app/AuthContext'
 import { api } from '../services/apiClient'
-import type { ConfigResponse, InferenceResult, QueryResult, QuerySolution, Rule, RulePattern } from '../types/api'
+import type { ConfigResponse, ConflictResolution, InferenceResult, KnowledgeAssessment, QueryResult, QuerySolution, Rule, RulePattern } from '../types/api'
+
+const KNOWLEDGE_STATUS_LABELS: Record<KnowledgeAssessment['status'], string> = {
+  explicit: 'Explícito', derived: 'Derivado', unknown: 'Desconhecido',
+  contradicted: 'Contradito', insufficient_evidence: 'Evidência insuficiente',
+}
 import { parseContextMap, parseTypedValue, displayValue, valueTypes, type ValueType } from '../features/knowledge/valueParsing'
 import { proofHrefForSolution, valueTypeToObjectType } from '../features/reasoning/proofLinks'
 import { ExplanationTree } from '../components/ExplanationTree'
@@ -27,8 +32,10 @@ export function ReasoningPage() {
   const [error, setError] = useState<string | null>(null)
   const [queryOffset, setQueryOffset] = useState(0)
   const [rulesRevision, setRulesRevision] = useState(0)
+  const [consistencyRevision, setConsistencyRevision] = useState(0)
   const config = useApiData(() => api.get<ConfigResponse>('/config'), [live.revision])
   const rules = useApiData(() => api.get<{ items: Rule[] }>('/rules'), [live.revision, rulesRevision])
+  const resolutions = useApiData(() => api.get<{ items: ConflictResolution[] }>('/consistency/resolutions'), [live.revision, consistencyRevision])
 
   useEffect(() => {
     if (config.data?.default_strategy) setStrategy(config.data.default_strategy)
@@ -76,9 +83,60 @@ export function ReasoningPage() {
         {busy && !result ? <LoadingBlock /> : result ? <QueryResultView result={result} offset={queryOffset} onPage={changePage} /> : <EmptyState title="Nenhuma consulta executada" description="Preencha o padrão e execute contra o engine." />}
       </Panel>
     </div>
+    <ConsistencyPanel subject={subject} predicate={predicate} object={object} objectType={objectType} canWrite={canWrite} resolutions={resolutions.data?.items ?? []} onReviewed={() => setConsistencyRevision((value) => value + 1)} />
     {inference && <Panel title="Snapshot da inferência" description="Payload canônico retornado por /inference; nenhum tempo ou prova foi inventado."><InferenceView result={inference} /></Panel>}
     <RulePanel rules={rules.data?.items ?? []} loading={rules.loading} error={rules.error} canWrite={canWrite} onChanged={() => setRulesRevision((value) => value + 1)} onRetry={rules.reload} />
   </div>
+}
+
+function ConsistencyPanel({ subject, predicate, object, objectType, canWrite, resolutions, onReviewed }: { subject: string; predicate: string; object: string; objectType: ValueType; canWrite: boolean; resolutions: ConflictResolution[]; onReviewed: () => void }) {
+  const [otherPredicate, setOtherPredicate] = useState('')
+  const [assessment, setAssessment] = useState<KnowledgeAssessment | null>(null)
+  const [selectedFactIds, setSelectedFactIds] = useState<number[]>([])
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [payload, setPayload] = useState<Record<string, unknown> | null>(null)
+  const assess = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError(null); setAssessment(null)
+    try {
+      if (!subject.trim() || subject.startsWith('?') || !predicate.trim() || predicate.startsWith('?') || object.startsWith('?')) throw new Error('A avaliação exige sujeito, predicado e objeto concretos; variáveis ?x não são afirmações.')
+      const claim = { subject, predicate, object: parseTypedValue(object, objectType), object_type: valueTypeToObjectType(objectType), incompatibilities: otherPredicate.trim() ? [{ predicate_a: predicate, predicate_b: otherPredicate.trim() }] : [] }
+      setPayload(claim)
+      const result = await api.post<KnowledgeAssessment>('/consistency/assessments', claim)
+      setAssessment(result); setSelectedFactIds([])
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Falha ao avaliar consistência.') } finally { setBusy(false) }
+  }
+  const review = async (event: React.FormEvent) => {
+    event.preventDefault(); if (!payload || !selectedFactIds.length) return
+    setBusy(true); setError(null)
+    try {
+      const response = await api.post<{ assessment: KnowledgeAssessment }>('/consistency/resolutions', { ...payload, selected_fact_ids: selectedFactIds, reason })
+      setAssessment(response.assessment); setReason(''); onReviewed()
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Falha ao registrar revisão.') } finally { setBusy(false) }
+  }
+  const candidates = assessment ? [...new Set([...assessment.explicit_fact_ids, ...assessment.conflicting_fact_ids])] : []
+  return <Panel title="Consistência e suficiência" description="Avalie uma afirmação concreta. Incompatibilidades são declaradas explicitamente; o AETHER não escolhe automaticamente qual fonte é verdadeira.">
+    {error && <InfoCallout tone="error">{error}</InfoCallout>}
+    <form className="query-form" onSubmit={assess}>
+      <label>Predicado incompatível <span className="muted">(opcional; mesmo sujeito, qualquer par de valores)</span><input aria-label="Predicado incompatível" value={otherPredicate} onChange={(event) => setOtherPredicate(event.target.value)} placeholder="ex. falecido" /></label>
+      <div className="query-actions"><button className="button button--primary" type="submit" disabled={busy}>{busy ? 'Avaliando…' : 'Avaliar consistência'}</button></div>
+    </form>
+    {assessment && <div className="result-stack" aria-live="polite">
+      <div className="result-summary"><StatusBadge status={assessment.status} label={KNOWLEDGE_STATUS_LABELS[assessment.status]} /><span>{assessment.evidence_sufficient ? 'proveniência suficiente' : 'proveniência insuficiente'}</span><span>{assessment.complete === null ? 'completude desconhecida' : assessment.complete ? 'inferência completa' : 'inferência incompleta'}</span></div>
+      <p>{assessment.note}</p>
+      <p className="muted">Afirmação: <code className="mono">{JSON.stringify(assessment.claim)}</code></p>
+      {assessment.resolution && <InfoCallout tone="info">Revisão registrada por {assessment.resolution.resolved_by}; conflito preservado. Seleção: {assessment.resolution.selected_fact_ids.map((id) => `#${id}`).join(', ')}.</InfoCallout>}
+      {assessment.status === 'contradicted' && !assessment.resolution && <form className="rule-form" onSubmit={review}>
+        <h3>Registrar revisão humana</h3>
+        {!assessment.evidence_sufficient && <InfoCallout tone="error">A revisão está bloqueada porque a evidência ainda é insuficiente.</InfoCallout>}
+        {candidates.map((id) => <label key={id}><input type="checkbox" aria-label={`Selecionar fato #${id}`} checked={selectedFactIds.includes(id)} onChange={(event) => setSelectedFactIds((current) => event.target.checked ? [...current, id] : current.filter((value) => value !== id))} /> Aceitar o registro #<b>{id}</b> como seleção desta revisão</label>)}
+        <label>Justificativa da revisão<textarea aria-label="Justificativa da revisão" value={reason} onChange={(event) => setReason(event.target.value)} rows={3} /></label>
+        {canWrite ? <button className="button button--primary" type="submit" disabled={busy || !assessment.evidence_sufficient || !selectedFactIds.length || !reason.trim()}>{busy ? 'Registrando…' : 'Registrar revisão auditável'}</button> : <PermissionNotice />}
+      </form>}
+    </div>}
+    {resolutions.length > 0 && <details><summary>Histórico de revisões ({resolutions.length})</summary><div className="result-stack">{[...resolutions].reverse().map((item, index) => <div className="rule-row" key={`${item.recorded_at_ns}-${index}`}><div><b>{item.active ? 'Ativa' : 'Invalidada'}</b><span>{item.reason}</span><span className="muted">Fatos {item.fact_ids.map((id) => `#${id}`).join(', ')} · {item.resolved_by}</span></div><StatusBadge status={item.active ? 'active' : 'invalidated'} /></div>)}</div></details>}
+  </Panel>
 }
 
 function QueryResultView({ result, offset, onPage }: { result: QueryResult; offset: number; onPage: (offset: number) => void }) {

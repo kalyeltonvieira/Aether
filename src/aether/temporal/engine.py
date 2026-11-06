@@ -1,9 +1,10 @@
 """Durable ordered event queue, replay log, and verified checkpoints for AETHER.
 
-The delivery contract is at-least-once: a crash after a handler side effect but
-before the status commit can cause the same event to be invoked again. Consumers
-must make side effects idempotent by ``event_id``. Events are claimed in durable
-sequence order and one event per database is processed at a time.
+The delivery contract is at-least-once: a crash or lease expiry after a handler
+side effect but before the status commit can invoke the same event again, even
+while an older handler is still running. Consumers must make side effects
+idempotent by ``event_id``. Events are claimed in durable sequence order, and a
+per-claim fencing token prevents stale handlers from acknowledging a newer claim.
 """
 from __future__ import annotations
 
@@ -21,7 +22,8 @@ from typing import Any, Callable, Mapping
 import uuid
 
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
+_CHECKPOINT_SCHEMA_VERSION = 1
 _APPLICATION_ID = 0x41455448  # "AETH"
 _STATUSES = {"pending", "processing", "processed", "failed"}
 
@@ -216,7 +218,7 @@ class EventEngine:
         }
         if app_id not in (0, _APPLICATION_ID):
             raise RuntimeError("event database belongs to a different SQLite application")
-        if schema not in (0, _SCHEMA_VERSION):
+        if schema not in (0, 1, _SCHEMA_VERSION):
             raise RuntimeError(f"unsupported event database schema version: {schema}")
         if app_id == 0 and tables and "events" not in tables:
             raise RuntimeError("existing SQLite file is not an AETHER event database")
@@ -228,9 +230,14 @@ class EventEngine:
             "payload_json TEXT NOT NULL, provenance_json TEXT, event_hash TEXT NOT NULL, "
             "status TEXT NOT NULL CHECK(status IN ('pending','processing','processed','failed')), "
             "attempts INTEGER NOT NULL DEFAULT 0, available_at_ns INTEGER NOT NULL, "
-            "claimed_by TEXT, lease_until_ns INTEGER, created_ns INTEGER NOT NULL, "
+            "claimed_by TEXT, claim_token TEXT, lease_until_ns INTEGER, created_ns INTEGER NOT NULL, "
             "processed_ns INTEGER, last_error TEXT)"
         )
+        event_columns = {
+            row[1] for row in db.execute("PRAGMA table_info(events)").fetchall()
+        }
+        if "claim_token" not in event_columns:
+            db.execute("ALTER TABLE events ADD COLUMN claim_token TEXT")
         db.execute("CREATE INDEX IF NOT EXISTS events_status_sequence ON events(status, sequence)")
         db.execute(
             "CREATE TABLE IF NOT EXISTS checkpoints ("
@@ -392,7 +399,9 @@ class EventEngine:
         next_after = records[-1].sequence if has_more and records else None
         return EventPage(records, next_after, not has_more)
 
-    def _claim_next(self, worker_id: str, now_ns: int, max_attempts: int) -> EventRecord | None:
+    def _claim_next(
+        self, worker_id: str, now_ns: int, max_attempts: int
+    ) -> tuple[EventRecord, str] | None:
         with self._write_transaction():
             row = self._db.execute(
                 "SELECT * FROM events WHERE status != 'processed' ORDER BY sequence LIMIT 1"
@@ -406,20 +415,21 @@ class EventEngine:
             attempts = int(row["attempts"])
             if attempts >= max_attempts:
                 self._db.execute(
-                    "UPDATE events SET status='failed', claimed_by=NULL, lease_until_ns=NULL, "
+                    "UPDATE events SET status='failed', claimed_by=NULL, claim_token=NULL, lease_until_ns=NULL, "
                     "last_error=COALESCE(last_error,'retry limit reached') WHERE sequence=?",
                     (int(row["sequence"]),),
                 )
                 return None
+            claim_token = uuid.uuid4().hex
             self._db.execute(
                 "UPDATE events SET status='processing', attempts=attempts+1, claimed_by=?, "
-                "lease_until_ns=? WHERE sequence=?",
-                (worker_id, now_ns + self.lease_ns, int(row["sequence"])),
+                "claim_token=?, lease_until_ns=? WHERE sequence=?",
+                (worker_id, claim_token, now_ns + self.lease_ns, int(row["sequence"])),
             )
             updated = self._db.execute(
                 "SELECT * FROM events WHERE sequence=?", (int(row["sequence"]),)
             ).fetchone()
-            return self._record_from_row(updated)
+            return self._record_from_row(updated), claim_token
 
     def process_batch(
         self,
@@ -452,9 +462,10 @@ class EventEngine:
             now_ns = time.time_ns()
             with self._lock:
                 self._ensure_open()
-                event = self._claim_next(worker_id, now_ns, max_attempts)
-            if event is None:
+                claim = self._claim_next(worker_id, now_ns, max_attempts)
+            if claim is None:
                 break
+            event, claim_token = claim
             attempted += 1
             try:
                 handler(event)
@@ -467,10 +478,10 @@ class EventEngine:
                 new_status = "failed" if terminal else "pending"
                 with self._lock, self._write_transaction():
                     cursor = self._db.execute(
-                        "UPDATE events SET status=?, available_at_ns=?, claimed_by=NULL, "
+                        "UPDATE events SET status=?, available_at_ns=?, claimed_by=NULL, claim_token=NULL, "
                         "lease_until_ns=NULL, last_error=? WHERE event_id=? AND "
-                        "status='processing' AND claimed_by=?",
-                        (new_status, time.time_ns() + delay_ns, f"{error_type}: {message}", event.event_id, worker_id),
+                        "status='processing' AND claimed_by=? AND claim_token=?",
+                        (new_status, time.time_ns() + delay_ns, f"{error_type}: {message}", event.event_id, worker_id, claim_token),
                     )
                 if cursor.rowcount != 1:
                     lost_claims += 1
@@ -483,10 +494,10 @@ class EventEngine:
             else:
                 with self._lock, self._write_transaction():
                     cursor = self._db.execute(
-                        "UPDATE events SET status='processed', processed_ns=?, claimed_by=NULL, "
+                        "UPDATE events SET status='processed', processed_ns=?, claimed_by=NULL, claim_token=NULL, "
                         "lease_until_ns=NULL, last_error=NULL WHERE event_id=? AND "
-                        "status='processing' AND claimed_by=?",
-                        (time.time_ns(), event.event_id, worker_id),
+                        "status='processing' AND claimed_by=? AND claim_token=?",
+                        (time.time_ns(), event.event_id, worker_id, claim_token),
                     )
                 if cursor.rowcount == 1:
                     processed += 1
@@ -503,7 +514,7 @@ class EventEngine:
         now_ns = time.time_ns() if now_ns is None else _non_negative_int(now_ns, "now_ns")
         with self._lock, self._write_transaction():
             cursor = self._db.execute(
-                "UPDATE events SET status='pending', claimed_by=NULL, lease_until_ns=NULL "
+                "UPDATE events SET status='pending', claimed_by=NULL, claim_token=NULL, lease_until_ns=NULL "
                 "WHERE status='processing' AND lease_until_ns <= ?",
                 (now_ns,),
             )
@@ -514,7 +525,7 @@ class EventEngine:
         with self._lock, self._write_transaction():
             cursor = self._db.execute(
                 "UPDATE events SET status='pending', attempts=0, available_at_ns=?, "
-                "claimed_by=NULL, lease_until_ns=NULL, processed_ns=NULL, last_error=NULL "
+                "claimed_by=NULL, claim_token=NULL, lease_until_ns=NULL, processed_ns=NULL, last_error=NULL "
                 "WHERE event_id=? AND status='failed'",
                 (time.time_ns(), event_id),
             )
@@ -586,19 +597,30 @@ class EventEngine:
                 "SELECT COALESCE(MAX(sequence),0) FROM events"
             ).fetchone()[0])
             if sequence is None:
-                sequence = int(self._db.execute(
-                    "SELECT COALESCE(MAX(sequence),0) FROM events WHERE status='processed'"
-                ).fetchone()[0])
+                first_unprocessed = self._db.execute(
+                    "SELECT MIN(sequence) FROM events WHERE status!='processed'"
+                ).fetchone()[0]
+                sequence = (
+                    max_sequence
+                    if first_unprocessed is None
+                    else int(first_unprocessed) - 1
+                )
             else:
                 sequence = _non_negative_int(sequence, "sequence")
             if sequence > max_sequence:
                 raise ValueError("checkpoint sequence exceeds the event log")
+            unprocessed = int(self._db.execute(
+                "SELECT COUNT(*) FROM events WHERE sequence<=? AND status!='processed'",
+                (sequence,),
+            ).fetchone()[0])
+            if unprocessed:
+                raise ValueError("checkpoint sequence includes unprocessed events")
             self._db.execute(
                 "INSERT INTO checkpoints(checkpoint_id,sequence,created_ns,state,digest,schema_version) "
                 "VALUES(?,?,?,?,?,?)",
-                (checkpoint_id, sequence, created_ns, sqlite3.Binary(state), digest, _SCHEMA_VERSION),
+                (checkpoint_id, sequence, created_ns, sqlite3.Binary(state), digest, _CHECKPOINT_SCHEMA_VERSION),
             )
-            return EventCheckpoint(checkpoint_id, sequence, created_ns, state, digest, _SCHEMA_VERSION)
+            return EventCheckpoint(checkpoint_id, sequence, created_ns, state, digest, _CHECKPOINT_SCHEMA_VERSION)
 
     def load_checkpoint(self, checkpoint_id: str | None = None) -> EventCheckpoint | None:
         with self._lock:
@@ -618,7 +640,7 @@ class EventEngine:
         digest = hashlib.sha256(state).hexdigest()
         if digest != row["digest"]:
             raise RuntimeError(f"corrupt event checkpoint {row['checkpoint_id']!r}")
-        if int(row["schema_version"]) != _SCHEMA_VERSION:
+        if int(row["schema_version"]) != _CHECKPOINT_SCHEMA_VERSION:
             raise RuntimeError("event checkpoint schema version is incompatible")
         return EventCheckpoint(
             str(row["checkpoint_id"]), int(row["sequence"]), int(row["created_ns"]),

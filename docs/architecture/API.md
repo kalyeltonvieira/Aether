@@ -91,7 +91,7 @@ Todas as páginas usam o formato:
 
 `GET /api/v1/entities?search=&offset=0&limit=100` lista entidades; `GET /entities/{entity_id}` lê uma entidade; `POST /entities` recebe `{entity_id,properties}`; `PATCH /entities/{entity_id}` recebe `{properties}`. Os dois últimos são mutações de operador.
 
-`GET /api/v1/facts?subject=&predicate=&offset=0&limit=100` lista fatos. Cada fato inclui `fact_id`, sujeito, predicado, objeto escalar bruto, `object_type`, propriedades, confiança, `provenances` e `evidence_records` (cada evidência carrega proveniência, confiança e `context`). Os objetos preservam `bool`, `int`, `float`, `str` e `null` como identidades distintas. `POST /facts` aceita:
+`GET /api/v1/facts?subject=&predicate=&offset=0&limit=100` lista fatos. Cada fato inclui `fact_id`, sujeito, predicado, objeto escalar bruto, `object_type`, propriedades, confiança, `provenances` e `evidence_records` (cada evidência carrega `evidence_id`, proveniência, confiança e `context`). O ID estável é derivado do conteúdo do registro, não de sua posição. Os objetos preservam `bool`, `int`, `float`, `str` e `null` como identidades distintas. `POST /facts` aceita:
 
 ```json
 {
@@ -106,7 +106,7 @@ Todas as páginas usam o formato:
 }
 ```
 
-`context` aceita até 32 pares de strings (chaves até 64 caracteres, valores até 256). O contexto é por evidência, não parte da identidade relacional. `PATCH /facts/{fact_id}` valida uma substituição. Se sujeito, predicado ou objeto mudarem, a resposta informa `replaced_fact_id`, `new_fact_id` e `key_changed`; evidências anteriores são carregadas para a nova chave. `DELETE /facts/{fact_id}` remove o fato e retorna o registro removido.
+`context` aceita até 32 pares de strings (chaves até 64 caracteres, valores até 256). O contexto é por evidência, não parte da identidade relacional. `PATCH /facts/{fact_id}` valida uma substituição. Se sujeito, predicado ou objeto mudarem, a resposta informa `replaced_fact_id`, `new_fact_id` e `key_changed`; evidências anteriores são carregadas para a nova chave. `DELETE /facts/{fact_id}` remove o fato e retorna o registro removido. `DELETE /facts/{fact_id}/evidence/{evidence_id}` retira apenas a evidência indicada; o fato permanece se outra fonte ainda o sustentar e é removido apenas quando a última evidência sai. A operação exige operador e `X-CSRF-Token`, persiste a mudança, invalida cache, registra histórico e emite `knowledge.changed`.
 
 `GET /history` retorna mudanças reais do store com sequência, timestamp, operação, versões e snapshots `before`/`after`. O histórico está sujeito ao limite de retenção do `KnowledgeStore`.
 
@@ -140,6 +140,10 @@ Consultas abertas usam `forward` ou `adaptive`. Metas abertas em `backward`/`hyb
 Um `context_filter` não vazio seleciona fatos quando **uma mesma evidência** contém todos os pares solicitados com igualdade exata. A seleção antecede todas as estratégias de inferência, evitando joins entre fatos elegíveis em contextos distintos. Fatos/evidências antigos sem contexto permanecem disponíveis sem filtro, mas não correspondem a um filtro não vazio. Respostas contextualizadas incluem `context_filter` e `context_fact_count`; o filtro integra a identidade da entrada de cache e é preservado nos links do Proof Explorer. Esse campo é metadado de recuperação, não controle de acesso. Consulte [Contexto por evidência](CONTEXTUAL_EVIDENCE.md) para limites e exemplos.
 
 `POST /inference` recomputa o fechamento real e é mutação de operador. `POST /explanations` recebe uma chave e o mesmo `context_filter` opcional, e retorna provas alternativas, regra/revisão, depth, suportes, fato explícito e proveniência; nós da árvore também incluem `key_type`. O backend não inventa soluções quando o motor não prova a chave no conjunto selecionado.
+
+`POST /api/v1/consistency/assessments` recebe um claim concreto (`subject`, `predicate`, `object`, `object_type?`) e `incompatibilities`, uma lista explícita de relações entre predicados (`predicate_a`, `predicate_b`, opcionalmente `object_pairs`). O resultado separa `explicit`, `derived`, `unknown`, `contradicted` e `insufficient_evidence`, inclui IDs de fatos, `evidence_sufficient`, `complete`, provas, revisão vigente e uma nota. Incompatibilidades não são adivinhadas; a avaliação é global sobre o store. Uma conclusão ausente nunca vira falso, e uma avaliação com evidência ausente/inferência incompleta é explicitamente insuficiente.
+
+`POST /api/v1/consistency/resolutions` recebe o mesmo claim e incompatibilidades, mais `selected_fact_ids` e `reason`. É mutação exclusiva de operador com CSRF; o servidor reavalia o conflito, exige status contradito e proveniência suficiente, confere que os IDs selecionados pertencem ao conflito atual e grava o ator da sessão (não um valor livre do browser). A resposta inclui a avaliação atualizada, que continua `contradicted`: revisão humana é auditável, não sobrescreve evidência nem declara verdade automática. `GET /api/v1/consistency/resolutions` retorna o ledger completo, incluindo revisões invalidadas. Evidência nova/retirada invalida a revisão por fingerprint. Resolução por contexto ainda não é suportada; consultas contextuais continuam disponíveis em `/queries` e `/explanations`.
 
 ## Memória, configuração e métricas
 
@@ -177,7 +181,8 @@ O endpoint `/ws` aceita somente uma sessão autorizada e um `Origin` exatamente 
 
 A primeira mensagem é um snapshot. Depois, o servidor publica apenas mensagens derivadas de estado real:
 
-- `knowledge.changed`: mutação de entidade, fato, regra ou efeito aplicado por evento;
+- `knowledge.changed`: mutação de entidade, fato/evidência, regra ou efeito aplicado por evento;
+- `consistency.changed`: registro de uma revisão humana de conflito;
 - `events.changed`: enqueue, processamento ou retry;
 - `metrics`: amostra de métricas, inclusive em resposta ao texto `ping`;
 - `snapshot`: estado inicial.
@@ -186,7 +191,7 @@ Mensagens diferentes de `ping` não executam operações; retornam erro. A conex
 
 ## Erros e limites de segurança
 
-Erros usam `{detail:string|object}` e status 400, 401, 403, 404, 409, 422 ou 429 conforme a causa. Validação rejeita objetos compostos em campos escalares, números não finitos, payloads fora dos limites e regras malformadas. Login tem rate limit local. A API não oferece execução de código, expansão JSON recursiva ilimitada, leitura de arquivos, path remoto ou query arbitrária.
+Erros usam `{detail:string|object}` e status 400, 401, 403, 404, 409, 422 ou 429 conforme a causa. Retirada de ID malformado retorna 422; fato/evidência inexistente retorna 404; leitor sem papel de operador ou mutação sem CSRF recebe 403. Resolução sem conflito contradito, com evidência insuficiente ou seleção fora do conjunto atual retorna erro de validação. Validação rejeita objetos compostos em campos escalares, números não finitos, payloads fora dos limites e regras malformadas. Login tem rate limit local. A API não oferece execução de código, expansão JSON recursiva ilimitada, leitura de arquivos, path remoto ou query arbitrária.
 
 O estado é serializado por lock dentro do processo. Snapshot de conhecimento, regras, memória cold e fila de eventos têm persistências separadas. Reinício restaura fatos, regras, config e cold tier quando habilitados, mas sessões são apenas em memória e precisam ser refeitas.
 

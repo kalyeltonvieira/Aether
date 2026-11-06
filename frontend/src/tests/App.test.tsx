@@ -79,4 +79,62 @@ describe('Studio shell', () => {
     const queryCall = vi.mocked(fetch).mock.calls.find(([input]) => String(input).includes('/api/v1/queries'))
     expect(JSON.parse(String(queryCall?.[1]?.body))).toMatchObject({ context_filter: { domain: 'legal' } })
   })
+
+  it('lets operators withdraw one evidence record by its stable ID', async () => {
+    const evidenceId = `ev_${'a'.repeat(64)}`
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    installApiMock({
+      '/auth/session': { authenticated: true, role: 'operator', auth_mode: 'manus', csrf_token: 'operator-csrf', open_id: 'openid:operator' },
+      '/facts?subject=&predicate=&offset=0&limit=50': {
+        items: [{ fact_id: 1, subject: 'alice', predicate: 'role', object: 'analyst', object_type: 'str', properties: {}, confidence: null, provenances: [], evidence_records: [{ evidence_id: evidenceId, provenance: { source: 'record-a' }, confidence: null, context: { domain: 'hr' } }] }],
+        total: 1, offset: 0, limit: 50, next_offset: null,
+      },
+      [`DELETE /facts/1/evidence/${evidenceId}`]: { removed: true, fact_id: 1, evidence_id: evidenceId, fact_deleted: false, fact: null, inference_complete: true, invalidation: null },
+    })
+    renderApp()
+    await screen.findByRole('heading', { name: 'Dashboard' })
+    await userEvent.click(screen.getByRole('link', { name: /knowledge explorer/i }))
+    await userEvent.click(await screen.findByText('1 registro(s)'))
+    await userEvent.click(screen.getByRole('button', { name: `Retirar evidência ${evidenceId}` }))
+    expect(await screen.findByText(/outras fontes continuam sustentando o fato/i)).toBeInTheDocument()
+    const deleteCall = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith(`/api/v1/facts/1/evidence/${evidenceId}`) && init?.method === 'DELETE')
+    expect(deleteCall).toBeDefined()
+    expect(confirm).toHaveBeenCalledOnce()
+    confirm.mockRestore()
+  })
+
+  it('assesses a claim and submits a human conflict review with selected fact IDs', async () => {
+    const assessment = {
+      claim: ['alice', 'alive', 'present'], status: 'contradicted', explicit_fact_ids: [1], derived_proofs: [],
+      conflicting_fact_ids: [2], evidence_sufficient: true, complete: true, resolution: null,
+      note: 'Conflicting records are preserved; no source or confidence is selected automatically.',
+    }
+    const reviewed = { ...assessment, resolution: { fact_ids: [1, 2], selected_fact_ids: [1], reason: 'Reviewed witness records.', resolved_by: 'openid:operator', evidence_fingerprint: 'b'.repeat(64), recorded_at_ns: 10, invalidated_at_ns: null, active: true } }
+    installApiMock({
+      '/auth/session': { authenticated: true, role: 'operator', auth_mode: 'manus', csrf_token: 'operator-csrf', open_id: 'openid:operator' },
+      '/consistency/assessments': assessment,
+      'POST /consistency/resolutions': { resolution: reviewed.resolution, assessment: reviewed },
+    })
+    renderApp()
+    await screen.findByRole('heading', { name: 'Dashboard' })
+    await userEvent.click(screen.getByRole('link', { name: /reasoning console/i }))
+    fireEvent.change(await screen.findByLabelText('Sujeito da consulta'), { target: { value: 'alice' } })
+    fireEvent.change(screen.getByLabelText('Predicado da consulta'), { target: { value: 'alive' } })
+    fireEvent.change(screen.getByLabelText('Objeto da consulta'), { target: { value: 'present' } })
+    await userEvent.type(screen.getByLabelText('Predicado incompatível'), 'dead')
+    await userEvent.click(screen.getByRole('button', { name: 'Avaliar consistência' }))
+    expect(await screen.findByText(/conflicting records are preserved/i)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Selecionar fato #1' }))
+    await userEvent.type(screen.getByLabelText('Justificativa da revisão'), 'Reviewed witness records.')
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar revisão auditável' }))
+    await waitFor(() => {
+      const call = vi.mocked(fetch).mock.calls.find(([input, init]) => String(input).endsWith('/api/v1/consistency/resolutions') && init?.method === 'POST')
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+        subject: 'alice', predicate: 'alive', object: 'present',
+        incompatibilities: [{ predicate_a: 'alive', predicate_b: 'dead' }],
+        selected_fact_ids: [1], reason: 'Reviewed witness records.',
+      })
+    })
+    expect(await screen.findByText(/revisão registrada por openid:operator/i)).toBeInTheDocument()
+  })
 })

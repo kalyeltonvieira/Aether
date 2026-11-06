@@ -46,6 +46,7 @@ from aether.reasoning.inference import (
     QuerySolution,
 )
 from aether.reasoning.reasoner import KnowledgeReasoner
+from aether.reasoning.consistency import ConsistencyValidator, IncompatibilityRule, KnowledgeStatus
 from aether.temporal.engine import EventBatchResult, EventEngine, EventRecord
 from aether.temporal.knowledge import KnowledgeEventProcessor
 
@@ -123,6 +124,7 @@ def _fact_dict(fact: Fact) -> dict[str, Any]:
         "provenances": [_provenance_dict(item) for item in fact.provenances],
         "evidence_records": [
             {
+                "evidence_id": item.evidence_id,
                 "provenance": _provenance_dict(item.provenance),
                 "confidence": item.confidence,
                 "context": item.context_map,
@@ -503,6 +505,17 @@ class StudioState:
             self._after_knowledge_mutation("fact.remove", fact_id=fact_id)
             return fact
 
+    def remove_evidence(self, fact_id: int, evidence_id: str):
+        with self._lock:
+            result = self.reasoner.remove_evidence(fact_id, evidence_id)
+            self._after_knowledge_mutation(
+                "fact.evidence.remove",
+                fact_id=fact_id,
+                evidence_id=evidence_id,
+                fact_deleted=result.removal.fact_after is None,
+            )
+            return result
+
     def replace_fact(self, fact_id: int, payload: Any) -> dict[str, Any]:
         with self._lock:
             old = self.store.get_fact(fact_id)
@@ -802,6 +815,66 @@ class StudioState:
                 response["context_filter"] = context_filter
                 response["context_fact_count"] = query_store.stats()["facts"]
             return response
+
+    @staticmethod
+    def _incompatibility_rules(data: dict[str, Any]) -> tuple[IncompatibilityRule, ...]:
+        return tuple(
+            IncompatibilityRule(
+                item["predicate_a"],
+                item["predicate_b"],
+                None if item.get("object_pairs") is None else tuple(tuple(pair) for pair in item["object_pairs"]),
+            )
+            for item in data.get("incompatibilities", [])
+        )
+
+    def assess_consistency(self, payload: Any):
+        data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
+        with self._lock:
+            inference = InferenceEngine(
+                self.store, self.rules, join_planner=self.config["join_planner"]
+            ).infer(self._limits())
+            validator = ConsistencyValidator(self.store)
+            return validator.assess(
+                (data["subject"], data["predicate"], data["object"]),
+                inference=inference,
+                incompatibilities=self._incompatibility_rules(data),
+            )
+
+    def record_conflict_resolution(self, payload: Any, *, resolved_by: str):
+        data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
+        with self._lock:
+            validator = ConsistencyValidator(self.store)
+            rules = self._incompatibility_rules(data)
+            inference = InferenceEngine(
+                self.store, self.rules, join_planner=self.config["join_planner"]
+            ).infer(self._limits())
+            assessment = validator.assess(
+                (data["subject"], data["predicate"], data["object"]),
+                inference=inference,
+                incompatibilities=rules,
+            )
+            if assessment.status is not KnowledgeStatus.CONTRADICTED:
+                raise ValueError("a review can be recorded only for a contradicted claim")
+            if not assessment.evidence_sufficient:
+                raise ValueError("cannot record a conflict review while evidence is insufficient")
+            fact_ids = tuple(sorted(set(assessment.explicit_fact_ids + assessment.conflicting_fact_ids)))
+            selected_ids = tuple(sorted(set(data["selected_fact_ids"])))
+            if not selected_ids or not set(selected_ids) <= set(fact_ids):
+                raise ValueError("selected_fact_ids must select at least one fact in the assessed conflict")
+            resolution = validator.record_resolution(
+                fact_ids,
+                selected_ids,
+                reason=data["reason"],
+                resolved_by=resolved_by,
+            )
+            self.query_cache.clear()
+            self.persist()
+            self.record_activity(
+                "consistency.conflict_resolution.recorded",
+                fact_ids=list(fact_ids),
+                selected_fact_ids=list(selected_ids),
+            )
+            return resolution
 
     def memory_stats(self) -> dict[str, Any]:
         with self._lock:
