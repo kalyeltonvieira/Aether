@@ -73,10 +73,11 @@ class IncrementalInference:
         provenance: Provenance | None = None,
         confidence: float | None = None,
         properties: Mapping[str, Scalar] | None = None,
+        context: Mapping[str, str] | None = None,
     ) -> tuple[Fact, IncrementalUpdate]:
         explicit_fact, inserted = self.store.add_fact(
             subject, predicate, object, provenance=provenance, confidence=confidence,
-            properties=properties,
+            properties=properties, context=context,
         )
         if not inserted:
             return explicit_fact, IncrementalUpdate(False, (), 0, 0, self._stop_reason is None, self._stop_reason)

@@ -7,7 +7,14 @@ from typing import Mapping
 from aether.reasoning.dependencies import DependencyTracker, InvalidationStats
 from aether.reasoning.inference import InferenceEngine, InferenceLimits, InferenceResult, Rule
 from aether.reasoning.incremental import IncrementalInference
-from aether.core.knowledge.store import Entity, Fact, KnowledgeStore, Provenance, Scalar
+from aether.core.knowledge.store import (
+    Entity,
+    EvidenceRemoval,
+    Fact,
+    KnowledgeStore,
+    Provenance,
+    Scalar,
+)
 
 _EXTERNAL_MUTATION = "external_store_mutation_requires_recompute"
 _RULE_MUTATION = "rule_set_changed_requires_recompute"
@@ -23,15 +30,23 @@ class ReasonerState:
     rules_fingerprint: tuple = ()
 
 
+@dataclass(frozen=True)
+class EvidenceRetractionResult:
+    removal: EvidenceRemoval
+    invalidation: InvalidationStats | None
+    inference_complete: bool | None
+
+
 class KnowledgeReasoner:
     """Keep inference state safe across store and rule-set mutations.
 
     Mutations through the reasoner are tracked. Direct store mutations and all
     rule lifecycle changes invalidate a previously complete result; conclusions
     from an obsolete snapshot cannot be read as current until ``recompute``.
-    Fact removal uses proof-level dependency invalidation first, retains surviving
-    alternative proofs, then conservatively marks completeness unknown pending a
-    fresh full inference.
+    Removing the last evidence for a fact uses proof-level dependency invalidation,
+    retains surviving alternative proofs, then marks completeness unknown pending
+    a fresh full inference. Removing one of several evidence records keeps the
+    logical fact and its current proof graph intact.
     """
 
     def __init__(
@@ -144,12 +159,13 @@ class KnowledgeReasoner:
         provenance: Provenance | None = None,
         confidence: float | None = None,
         properties: Mapping[str, Scalar] | None = None,
+        context: Mapping[str, str] | None = None,
     ) -> tuple[Fact, bool]:
         self._synchronize_versions()
         if self._state is not None and self._state.complete_for_current_store:
             fact, update = self._incremental.add_fact(
                 subject, predicate, object, provenance=provenance, confidence=confidence,
-                properties=properties,
+                properties=properties, context=context,
             )
             if not update.inserted:
                 return fact, False
@@ -170,7 +186,7 @@ class KnowledgeReasoner:
 
         fact, inserted = self.store.add_fact(
             subject, predicate, object, provenance=provenance, confidence=confidence,
-            properties=properties,
+            properties=properties, context=context,
         )
         if inserted and self._state is not None:
             stale_reason = self._state.stale_reason or "new_fact_requires_recompute"
@@ -214,6 +230,44 @@ class KnowledgeReasoner:
             self.engine.rules_version, self.engine.rules_fingerprint,
         )
         return stats
+
+    def remove_evidence(self, fact_id: int, evidence_id: str) -> EvidenceRetractionResult:
+        """Withdraw one source record and propagate loss of its logical support."""
+        self._synchronize_versions()
+        fact = self.store.get_fact(fact_id)
+        evidence = next(
+            (item for item in fact.evidence_records if item.evidence_id == evidence_id),
+            None,
+        )
+        if evidence is None:
+            raise KeyError(evidence_id)
+        if len(fact.evidence_records) == 1:
+            invalidation = self.remove_fact(fact_id)
+            removal = EvidenceRemoval(fact, evidence, None)
+            state = self._state
+            return EvidenceRetractionResult(
+                removal,
+                invalidation,
+                None if state is None else state.complete_for_current_store,
+            )
+
+        removal = self.store.remove_evidence(fact_id, evidence_id)
+        state = self._state
+        if state is not None:
+            self._state = ReasonerState(
+                state.result,
+                self.store.version,
+                state.complete_for_current_store,
+                state.stale_reason,
+                self.engine.rules_version,
+                self.engine.rules_fingerprint,
+            )
+        state = self._state
+        return EvidenceRetractionResult(
+            removal,
+            None,
+            None if state is None else state.complete_for_current_store,
+        )
 
     def conclusions(self) -> tuple:
         state = self._synchronize_versions()

@@ -35,10 +35,12 @@ Pontos de consistência verificados:
 - status Rust só informa disponibilidade depois de localizar/carregar a biblioteca real; `operations` e `rust_operations` ficam `null` até existir instrumentação nativa observada. A API não compila Rust nem inventa contadores;
 - o grafo ordena arestas por `fact_id` e retorna `total`, `offset`, `limit` e `next_offset` para continuação estável, inclusive na expansão por `center`;
 - omitir `limit` em `POST /events/process` usa o `event_batch_size` persistido, em vez de um default obrigatório no payload.
+- contexto é metadado por registro de evidência; filtro contextual usa igualdade exata e é aplicado antes de todas as estratégias, entra na chave de cache e não é um mecanismo de autorização;
+- eventos `fact.add` carregam contexto pelo caminho incremental; patch explícito atualiza a evidência primária e preserva as demais. Snapshots novos usam schema v2; snapshots v1 são carregados com contexto vazio.
 
 ## Verificação executada
 
-Validação local da branch `fix/stage1-reliability` em ambiente virtual instalado com `.[test]`: `unittest discover -v` passou 207 testes e registrou 6 skips relacionados à ausência de `rustc`; `pytest -q -rs` passou 202 e registrou 21 skips pelo mesmo motivo (pytest conta os métodos de uma classe cujo `setUpClass` unittest é pulado individualmente). O pytest emitiu um aviso Starlette/httpx de depreciação, sem falha. Frontend typecheck passou, Vitest passou 16/16 e o build de produção passou. `pip wheel` foi validado e contém os harnesses `benchmarks.phase9`; a advertência específica de pacote omitido desapareceu após incluir o pacote no manifesto. A CI da branch ainda não foi executada.
+Validação local da branch `feat/contextual-evidence-v1` em ambiente virtual instalado com `.[test]`: `unittest discover -v` passou 207 e registrou 6 skips ligados a `rustc`; `pytest -q -rs` passou 208 e registrou 21 skips pela falta do toolchain Rust, com um aviso de depreciação Starlette/httpx. Frontend typecheck passou, Vitest passou 19/19 e o build de produção passou. `pip wheel --no-deps` produziu artefato contendo core e schemas API. A CI desta feature branch ainda está pendente. Separadamente, a CI da `fix/stage1-reliability` passou 13/13 jobs ([run 42125306398](https://github.com/kalyeltonvieira/Aether/actions/runs/42125306398)); a revisão/merge dessa branch continua pendente.
 
 ```bash
 python -m unittest discover -v
@@ -48,7 +50,7 @@ pnpm --dir frontend test
 pnpm --dir frontend build
 ```
 
-A cobertura API inclui autenticação token, CSRF, expiração de sessão, CORS, rejeição de Origin, JWT Preview com projeto/expiração e sessão limitada ao `exp`, allowlist de operador, leitor default, cookies HTTPS, callback OAuth de uso único inclusive concorrente, CRUD/provas/cache, valores tipados e metadados recursivos de tipo, regras/configuração e fallback de estratégia, restart, persistência ligada/desligada e rejeição de toggles de runtime, paginação estável do grafo, lote de eventos configurável, status incompleto, fila de eventos, invalidação de cache e notificações WebSocket.
+A cobertura API inclui autenticação token, CSRF, expiração de sessão, CORS, rejeição de Origin, JWT Preview com projeto/expiração e sessão limitada ao `exp`, allowlist de operador, leitor default, cookies HTTPS, callback OAuth de uso único inclusive concorrente, CRUD/provas/cache, valores tipados e metadados recursivos de tipo, regras/configuração e fallback de estratégia, restart, persistência ligada/desligada e rejeição de toggles de runtime, paginação estável do grafo, lote de eventos configurável, status incompleto, fila de eventos, invalidação de cache e notificações WebSocket. A cobertura nova valida contexto por evidência, separação de cache, filtros nas quatro estratégias, joins sem mistura cross-context, explicações filtradas, PATCH contextual, contexto em eventos incrementais e migração de snapshot v1.
 
 ## Limitações honestas
 
@@ -60,3 +62,4 @@ A cobertura API inclui autenticação token, CSRF, expiração de sessão, CORS,
 6. A persistência habilitada é um snapshot verificável, não log transacional de cada operação. Conhecimento, regras, memória e eventos usam arquivos/bancos distintos. `persistence_enabled` é lido no startup: desligado, os dados de domínio ficam em memória e não sobrevivem ao encerramento; alterações por API exigem restart. A opção em `config.json` é mantida para conservar o modo escolhido, e arquivos anteriores não são apagados automaticamente.
 7. Limites de payload, paginação, regras, profundidade, operações e conclusões são deliberadamente finitos. Uma resposta incompleta mantém `complete:false` e não significa que a relação foi refutada.
 8. O `TestClient` da versão instalada pode emitir um aviso de compatibilidade Starlette/httpx; isso não altera os resultados HTTP/WebSocket observados.
+9. Contexto é declarado pelo produtor e usa pares exatos; não há hierarquia, contexto derivado, revisão ou resolução de conflito. Filtrar sem resultados não prova uma negação fora do recorte. `context_filter` não é isolamento de tenant nem substitui autorização. A visão é materializada após cache miss; seu custo deve ser medido/otimizado na Etapa 3.

@@ -5,7 +5,7 @@ import { useLiveUpdates } from '../hooks/useLiveUpdates'
 import { useApiData } from '../hooks/useApiData'
 import { api } from '../services/apiClient'
 import type { JsonScalar, ProofItem, ProofResponse } from '../types/api'
-import { displayValue, parseTypedValue, valueTypes, type ValueType } from '../features/knowledge/valueParsing'
+import { displayValue, parseContextMap, parseTypedValue, valueTypes, type ValueType } from '../features/knowledge/valueParsing'
 import { objectTypeToValueType, parseProofSelection, proofHrefForKey, valueTypeToObjectType, type ProofSelection } from '../features/reasoning/proofLinks'
 import { ExplanationTree, TypedValues } from '../components/ExplanationTree'
 import { EmptyState, ErrorState, InfoCallout, JsonPreview, LoadingBlock, PageHeader, Panel, StatusBadge } from '../components/ui'
@@ -20,9 +20,11 @@ export function ProofsPage() {
   const [object, setObject] = useState(queryParams.get('object') ?? '')
   const [objectType, setObjectType] = useState<ValueType>(initialSelection?.objectType ?? objectTypeToValueType(queryParams.get('object_type')) ?? 'str')
   const [queryKey, setQueryKey] = useState<{ subject: string; predicate: string; object: JsonScalar } | null>(initialSelection?.queryKey ?? null)
+  const [contextJson, setContextJson] = useState(JSON.stringify(initialSelection?.contextFilter ?? {}, null, 2))
+  const [contextFilter, setContextFilter] = useState<Record<string, string> | undefined>(initialSelection?.contextFilter)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const proof = useApiData<ProofResponse | null>(() => queryKey ? api.post<ProofResponse>('/explanations', { ...queryKey, object_type: valueTypeToObjectType(objectType) }) : Promise.resolve(null), [live.revision, queryKey?.subject, queryKey?.predicate, queryKey?.object, objectType])
+  const proof = useApiData<ProofResponse | null>(() => queryKey ? api.post<ProofResponse>('/explanations', { ...queryKey, object_type: valueTypeToObjectType(objectType), context_filter: contextFilter }) : Promise.resolve(null), [live.revision, queryKey?.subject, queryKey?.predicate, queryKey?.object, objectType, JSON.stringify(contextFilter ?? {})])
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -30,8 +32,10 @@ export function ProofsPage() {
     setError(null)
     try {
       const parsed = object.startsWith('?') ? object : parseTypedValue(object, objectType)
+      const parsedContext = parseContextMap(contextJson)
+      setContextFilter(parsedContext)
       setQueryKey({ subject, predicate, object: parsed })
-      navigate(proofHrefForKey([subject, predicate, parsed], objectType), { replace: true })
+      navigate(proofHrefForKey([subject, predicate, parsed], objectType, parsedContext), { replace: true })
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Padrão inválido.') } finally { setBusy(false) }
   }
 
@@ -43,6 +47,7 @@ export function ProofsPage() {
         <label>Predicado<input value={predicate} onChange={(e) => setPredicate(e.target.value)} required placeholder="can_access" /></label>
         <label>Objeto<input value={object} onChange={(e) => setObject(e.target.value)} required={objectType !== 'null'} placeholder="entity:system" /></label>
         <label>Tipo<select value={objectType} onChange={(e) => setObjectType(e.target.value as ValueType)}>{valueTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+        <label>Filtro contextual <span className="muted">(JSON opcional)</span><textarea aria-label="Filtro contextual da prova JSON" rows={2} value={contextJson} onChange={(e) => setContextJson(e.target.value)} placeholder={'{"domain":"legal"}'} /></label>
         <button className="button button--primary" disabled={busy} type="submit"><Search size={15} />{busy ? 'Buscando…' : 'Explicar conclusão'}</button>
       </form>
     </Panel>

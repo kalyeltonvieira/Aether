@@ -33,6 +33,19 @@ def validate_object_type(value: Any, object_type: str | None, field: str = "obje
         raise ValueError(f"{field}={object_type!r} does not match object type {actual!r}")
 
 
+def validate_context(value: dict[str, str] | None, field: str = "context") -> dict[str, str] | None:
+    if value is None:
+        return None
+    if len(value) > 32:
+        raise ValueError(f"{field} must contain at most 32 labels")
+    for key, label in value.items():
+        if not isinstance(key, str) or not key.strip() or len(key) > 64:
+            raise ValueError(f"{field} keys must be non-empty strings of at most 64 characters")
+        if not isinstance(label, str) or not label.strip() or len(label) > 256:
+            raise ValueError(f"{field} values must be non-empty strings of at most 256 characters")
+    return value
+
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=False, strict=True)
 
@@ -96,11 +109,13 @@ class FactCreate(StrictModel):
     properties: dict[str, Scalar] = Field(default_factory=dict)
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     provenance: ProvenanceInput | None = None
+    context: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_values(self):
         validate_scalar(self.object, "object")
         validate_object_type(self.object, self.object_type)
+        validate_context(self.context)
         for key, item in self.properties.items():
             if not isinstance(key, str) or not key.strip():
                 raise ValueError("property names must be non-empty strings")
@@ -116,6 +131,7 @@ class FactPatch(StrictModel):
     properties: dict[str, Scalar] | None = None
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     provenance: ProvenanceInput | None = None
+    context: dict[str, str] | None = None
     object_provided: bool = False
 
     @model_validator(mode="before")
@@ -138,8 +154,10 @@ class FactPatch(StrictModel):
                 if not isinstance(key, str) or not key.strip():
                     raise ValueError("property names must be non-empty strings")
                 validate_scalar(item, f"properties.{key}")
+        validate_context(self.context)
         if not any((self.subject is not None, self.predicate is not None, self.object_provided,
-                    self.properties is not None, self.confidence is not None, self.provenance is not None)):
+                    self.properties is not None, self.confidence is not None,
+                    self.provenance is not None, self.context is not None)):
             raise ValueError("patch must contain at least one field")
         return self
 
@@ -169,6 +187,7 @@ class QueryCreate(StrictModel):
     object: Scalar
     object_type: str | None = None
     strategy: Literal["forward", "backward", "hybrid", "adaptive"] | None = None
+    context_filter: dict[str, str] | None = None
     offset: int = Field(default=0, ge=0)
     limit: int = Field(default=100, ge=1, le=1000)
 
@@ -176,6 +195,7 @@ class QueryCreate(StrictModel):
     def validate_values(self):
         validate_scalar(self.object, "object")
         validate_object_type(self.object, self.object_type)
+        validate_context(self.context_filter, "context_filter")
         return self
 
 
@@ -184,11 +204,13 @@ class ExplanationCreate(StrictModel):
     predicate: str = Field(min_length=1, max_length=512)
     object: Scalar
     object_type: str | None = None
+    context_filter: dict[str, str] | None = None
 
     @model_validator(mode="after")
     def validate_values(self):
         validate_scalar(self.object, "object")
         validate_object_type(self.object, self.object_type)
+        validate_context(self.context_filter, "context_filter")
         return self
 
 

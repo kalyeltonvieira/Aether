@@ -6,7 +6,15 @@ from enum import Enum
 from typing import Iterable, Iterator
 
 from aether.reasoning.inference import InferenceResult, Rule
-from aether.core.knowledge.store import Fact, KnowledgeStore, Provenance, Scalar, fact_key_identity, scalar_equal
+from aether.core.knowledge.store import (
+    ConflictResolution,
+    Fact,
+    KnowledgeStore,
+    Provenance,
+    Scalar,
+    fact_key_identity,
+    scalar_equal,
+)
 
 
 class KnowledgeStatus(str, Enum):
@@ -59,14 +67,6 @@ class ConsistencyIssue:
 
 
 @dataclass(frozen=True)
-class ConflictResolution:
-    fact_ids: tuple[int, ...]
-    selected_fact_ids: tuple[int, ...]
-    reason: str
-    resolved_by: str
-
-
-@dataclass(frozen=True)
 class ConsistencyReport:
     issues: tuple[ConsistencyIssue, ...]
     resolutions: tuple[ConflictResolution, ...] = ()
@@ -104,11 +104,10 @@ class ConsistencyValidator:
         if not isinstance(store, KnowledgeStore):
             raise TypeError("store must be a KnowledgeStore")
         self.store = store
-        self._resolutions: list[ConflictResolution] = []
 
     @property
     def resolutions(self) -> tuple[ConflictResolution, ...]:
-        return tuple(self._resolutions)
+        return self.store.conflict_resolutions
 
     def record_resolution(
         self,
@@ -130,9 +129,9 @@ class ConsistencyValidator:
             raise ValueError("reason must be a non-empty string")
         if not isinstance(resolved_by, str) or not resolved_by.strip():
             raise ValueError("resolved_by must be a non-empty string")
-        resolution = ConflictResolution(ids, selected, reason, resolved_by)
-        self._resolutions.append(resolution)
-        return resolution
+        return self.store.record_conflict_resolution(
+            ids, selected, reason=reason, resolved_by=resolved_by
+        )
 
     def _declared_conflicts(
         self,
@@ -195,7 +194,13 @@ class ConsistencyValidator:
         matching_ids = tuple(fact.fact_id for fact in explicit)
         all_fact_ids = tuple(sorted(set(matching_ids) | set(conflict_ids)))
         resolution = next(
-            (item for item in reversed(self._resolutions) if item.fact_ids == all_fact_ids and all_fact_ids),
+            (
+                item for item in reversed(self.store.conflict_resolutions)
+                if item.fact_ids == all_fact_ids
+                and all_fact_ids
+                and item.invalidated_at_ns is None
+                and item.evidence_fingerprint == self.store.evidence_fingerprint(all_fact_ids)
+            ),
             None,
         )
         if conflicts:
@@ -206,7 +211,12 @@ class ConsistencyValidator:
                 (subject, predicate, value), KnowledgeStatus.CONTRADICTED,
                 matching_ids, (), conflict_ids, evidence_sufficient,
                 True if inference is None else inference.complete, resolution,
-                "Conflicting records are preserved; no source or confidence is selected automatically.",
+                (
+                    "Conflicting records are preserved; an explicit review is recorded, "
+                    "but it does not erase the conflict."
+                    if resolution is not None
+                    else "Conflicting records are preserved; no source or confidence is selected automatically."
+                ),
             )
         if explicit:
             sufficient = all(fact.provenances for fact in explicit)
@@ -353,4 +363,4 @@ class ConsistencyValidator:
                         elif isinstance(support, tuple) and len(support) == 3:
                             if fact_key_identity(support) not in derived_by_identity:
                                 issues.append(ConsistencyIssue("invalid_dependency", f"conclusion {conclusion.key} references missing derived fact {support}"))
-        return ConsistencyReport(tuple(issues), tuple(self._resolutions))
+        return ConsistencyReport(tuple(issues), self.resolutions)

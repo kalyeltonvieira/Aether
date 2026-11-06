@@ -43,3 +43,21 @@ export const valueTypes: { value: ValueType; label: string }[] = [
   { value: 'bool', label: 'booleano / bool' },
   { value: 'null', label: 'null' },
 ]
+
+export function parseContextMap(raw: string): Record<string, string> | undefined {
+  if (!raw.trim()) return undefined
+  let parsed: unknown
+  try { parsed = JSON.parse(raw) } catch { throw new Error('Contexto deve ser um objeto JSON válido.') }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Contexto deve ser um objeto JSON de rótulos string.')
+  }
+  const entries = Object.entries(parsed as Record<string, unknown>)
+  if (entries.length > 32) throw new Error('Contexto pode conter no máximo 32 rótulos.')
+  for (const [key, value] of entries) {
+    if (!key.trim() || key.length > 64) throw new Error('Chaves de contexto devem ter de 1 a 64 caracteres.')
+    if (typeof value !== 'string' || !value.trim() || value.length > 256) {
+      throw new Error('Valores de contexto devem ser strings não vazias de até 256 caracteres.')
+    }
+  }
+  return Object.fromEntries(entries.sort(([left], [right]) => left.localeCompare(right))) as Record<string, string>
+}

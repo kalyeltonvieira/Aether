@@ -60,9 +60,10 @@ export interface Fact {
   properties: Record<string, JsonValue>
   confidence: number | null
   provenances: Provenance[]
-  evidence_records: JsonValue[]
+  evidence_records: EvidenceRecord[]
 }
 export interface Provenance { source: string; evidence_type?: string | null; timestamp_ns?: number | null; detail?: string | null; [key: string]: JsonValue | undefined }
+export interface EvidenceRecord { provenance: Provenance | null; confidence: number | null; context?: Record<string, string> }
 export interface HistoryRecord { sequence: number; timestamp_ns: number; operation: string; [key: string]: JsonValue | undefined }
 
 export interface GraphNode { id: string; label: string; properties: Record<string, JsonValue> }
@@ -84,6 +85,7 @@ export interface QueryPayload {
   object: JsonScalar
   object_type?: ObjectType
   strategy?: 'forward' | 'backward' | 'hybrid' | 'adaptive'
+  context_filter?: Record<string, string>
   offset: number
   limit: number
 }
@@ -134,9 +136,11 @@ export interface QueryResult {
   decision_ns: number
   execution_ns: number
   rationale: string | null
+  context_filter?: Record<string, string>
+  context_fact_count?: number
 }
 export interface InferenceResult { complete: boolean; stop_reason: string | null; conclusions: JsonValue[]; operations: number; facts_examined?: number | null; [key: string]: unknown }
-export interface ProofResponse { key: ExplanationKey; proofs: ProofItem[]; explanation: ExplanationNode[]; complete: boolean; stop_reason: string | null }
+export interface ProofResponse { key: ExplanationKey; proofs: ProofItem[]; explanation: ExplanationNode[]; complete: boolean; stop_reason: string | null; context_filter?: Record<string, string>; context_fact_count?: number }
 
 export interface MemoryStats {
   [key: string]: unknown

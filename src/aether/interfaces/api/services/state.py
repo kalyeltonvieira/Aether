@@ -26,6 +26,7 @@ from aether.core.knowledge.store import (
     KnowledgeChange,
     KnowledgeStore,
     Provenance,
+    normalize_context,
     scalar_identity,
 )
 from aether.memory.adaptive_storage import AdaptiveMemory
@@ -121,7 +122,11 @@ def _fact_dict(fact: Fact) -> dict[str, Any]:
         "confidence": fact.confidence,
         "provenances": [_provenance_dict(item) for item in fact.provenances],
         "evidence_records": [
-            {"provenance": _provenance_dict(item.provenance), "confidence": item.confidence}
+            {
+                "provenance": _provenance_dict(item.provenance),
+                "confidence": item.confidence,
+                "context": item.context_map,
+            }
             for item in fact.evidence_records
         ],
     }
@@ -486,6 +491,7 @@ class StudioState:
                 data["subject"], data["predicate"], data["object"],
                 provenance=self.provenance_from_input(data.get("provenance")),
                 confidence=data.get("confidence"), properties=data.get("properties"),
+                context=data.get("context"),
             )
             self._after_knowledge_mutation("fact.add", fact_id=fact.fact_id)
             return fact
@@ -501,30 +507,32 @@ class StudioState:
         with self._lock:
             old = self.store.get_fact(fact_id)
             data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
-            new_subject = data.get("subject", old.subject)
-            new_predicate = data.get("predicate", old.predicate)
+            new_subject = data.get("subject") if data.get("subject") is not None else old.subject
+            new_predicate = data.get("predicate") if data.get("predicate") is not None else old.predicate
             new_object = data["object"] if data.get("object_provided") else old.object
             new_properties = data.get("properties") if data.get("properties") is not None else old.property_map()
             new_confidence = data.get("confidence") if data.get("confidence") is not None else old.confidence
             new_provenance = self.provenance_from_input(data.get("provenance")) if data.get("provenance") is not None else old.provenance
+            new_context = data.get("context") if data.get("context") is not None else old.evidence_records[0].context_map
             key_changed = (new_subject, new_predicate, scalar_identity(new_object)) != (old.subject, old.predicate, scalar_identity(old.object))
-            if not key_changed and data.get("properties") is None and data.get("provenance") is None and data.get("confidence") is None:
+            if not key_changed and data.get("properties") is None and data.get("provenance") is None and data.get("confidence") is None and data.get("context") is None:
                 raise ValueError("patch contains no effective fact change")
             self.reasoner.remove_fact(fact_id)
             try:
-                new_fact, _ = self.reasoner.add_fact(new_subject, new_predicate, new_object, provenance=new_provenance, confidence=new_confidence, properties=new_properties)
-                # Carry all old evidence into a replacement key. The new evidence is
-                # retained as the primary record and duplicate records are deduped by core.
-                for evidence in old.evidence_records:
-                    if evidence.provenance == new_provenance and evidence.confidence == new_confidence:
+                new_fact, _ = self.reasoner.add_fact(new_subject, new_predicate, new_object, provenance=new_provenance, confidence=new_confidence, properties=new_properties, context=new_context)
+                # An explicit context patch edits the primary evidence; otherwise
+                # carry every previous record when the fact key is replaced.
+                carried_evidence = old.evidence_records[1:] if data.get("context") is not None else old.evidence_records
+                for evidence in carried_evidence:
+                    if evidence.provenance == new_provenance and evidence.confidence == new_confidence and evidence.context_map == new_context:
                         continue
-                    new_fact, _ = self.reasoner.add_fact(new_subject, new_predicate, new_object, provenance=evidence.provenance, confidence=evidence.confidence, properties={})
+                    new_fact, _ = self.reasoner.add_fact(new_subject, new_predicate, new_object, provenance=evidence.provenance, confidence=evidence.confidence, properties={}, context=evidence.context_map)
             except Exception:
                 # Restore the original fact through the same real store API if the
                 # replacement was invalid; the outer request still reports the error.
-                self.reasoner.add_fact(old.subject, old.predicate, old.object, provenance=old.provenance, confidence=old.confidence, properties=old.property_map())
+                self.reasoner.add_fact(old.subject, old.predicate, old.object, provenance=old.provenance, confidence=old.confidence, properties=old.property_map(), context=old.evidence_records[0].context_map)
                 for evidence in old.evidence_records[1:]:
-                    self.reasoner.add_fact(old.subject, old.predicate, old.object, provenance=evidence.provenance, confidence=evidence.confidence, properties={})
+                    self.reasoner.add_fact(old.subject, old.predicate, old.object, provenance=evidence.provenance, confidence=evidence.confidence, properties={}, context=evidence.context_map)
                 raise
             self._after_knowledge_mutation("fact.replace", fact_id=new_fact.fact_id, replaced_fact_id=fact_id)
             result = _fact_dict(new_fact)
@@ -621,9 +629,11 @@ class StudioState:
     def query(self, payload: Any) -> dict[str, Any]:
         data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
         strategy = data.get("strategy") or self.config["default_strategy"]
+        context_filter = dict(normalize_context(data.get("context_filter")))
         key_data = {
             "subject": _typed_input(data["subject"]), "predicate": data["predicate"], "object": _typed_input(data["object"]),
             "strategy": strategy, "offset": data.get("offset", 0), "limit": data.get("limit", 100),
+            "context_filter": context_filter,
         }
         cache_key = self._cache_key(key_data)
         with self._lock:
@@ -641,6 +651,7 @@ class StudioState:
                 self.sample_metrics()
                 return result
             start = time.perf_counter_ns()
+            query_store = self.store.contextual_view(context_filter)
             pattern = Pattern(data["subject"], data["predicate"], data["object"])
             if strategy in {"backward", "hybrid"} and not pattern.is_ground:
                 raise ValueError(f"{strategy} strategy requires a ground query; use forward or adaptive for open bindings")
@@ -656,7 +667,7 @@ class StudioState:
             next_offset = None
             actual_strategy = strategy
             if strategy == "forward":
-                engine = InferenceEngine(self.store, self.rules, join_planner=self.config["join_planner"])
+                engine = InferenceEngine(query_store, self.rules, join_planner=self.config["join_planner"])
                 query_result: QueryResult = engine.query(pattern, self._limits(), max_results=data["limit"], offset=data["offset"])
                 solutions = [self._solution_dict(item) for item in query_result.solutions]
                 complete, stop_reason, operations = query_result.complete, query_result.stop_reason, query_result.operations
@@ -664,16 +675,16 @@ class StudioState:
                 rationale = "explicit_forward_query"
             elif strategy in {"backward", "hybrid"}:
                 if strategy == "backward":
-                    proof = BackwardInference(self.store, self.rules).prove((data["subject"], data["predicate"], data["object"]), BackwardLimits(self.config["max_depth"], self.config["max_operations"]))
+                    proof = BackwardInference(query_store, self.rules).prove((data["subject"], data["predicate"], data["object"]), BackwardLimits(self.config["max_depth"], self.config["max_operations"]))
                     proven, complete, operations, stop_reason = proof.proven, proof.complete, proof.operations, proof.stop_reason
                     rationale = "ground_backward_proof"
                 else:
-                    hybrid = HybridInference(self.store, self.rules, join_planner=self.config["join_planner"]).prove((data["subject"], data["predicate"], data["object"]), backward_limits=BackwardLimits(self.config["max_depth"], self.config["max_operations"]), forward_limits=self._limits())
+                    hybrid = HybridInference(query_store, self.rules, join_planner=self.config["join_planner"]).prove((data["subject"], data["predicate"], data["object"]), backward_limits=BackwardLimits(self.config["max_depth"], self.config["max_operations"]), forward_limits=self._limits())
                     proven, complete, operations, stop_reason = hybrid.proven, hybrid.complete, hybrid.operations, hybrid.stop_reason
                     rationale = hybrid.strategy
-                engine = InferenceEngine(self.store, self.rules, join_planner=self.config["join_planner"])
+                engine = InferenceEngine(query_store, self.rules, join_planner=self.config["join_planner"])
                 inferred = engine.infer(self._limits())
-                direct = self.store.query(subject=data["subject"], predicate=data["predicate"], object=data["object"])
+                direct = query_store.query(subject=data["subject"], predicate=data["predicate"], object=data["object"])
                 if proven or direct:
                     if direct:
                         solutions.append(self._derived_solution(direct[0].key, engine, inferred, fact_id=direct[0].fact_id))
@@ -686,7 +697,15 @@ class StudioState:
                 actual_strategy = strategy
             elif strategy == "adaptive":
                 decision_start = time.perf_counter_ns()
-                controller: ControllerResult = self.controller.prove((data["subject"], data["predicate"], data["object"]))
+                controller_impl = self.controller if query_store is self.store else AdaptiveReasoningController(
+                    query_store,
+                    self.rules,
+                    backward_limits=BackwardLimits(self.config["max_depth"], self.config["max_operations"]),
+                    forward_limits=self._limits(),
+                    max_query_results=1000,
+                    join_planner=self.config["join_planner"],
+                )
+                controller: ControllerResult = controller_impl.prove((data["subject"], data["predicate"], data["object"]))
                 decision_ns = controller.decision_ns
                 actual_strategy = controller.strategy
                 rationale = controller.rationale
@@ -698,9 +717,9 @@ class StudioState:
                     if data["offset"] + len(selected) < len(controller.solutions) or (len(selected) == data["limit"] and not complete):
                         next_offset = data["offset"] + len(selected)
                 else:
-                    engine = InferenceEngine(self.store, self.rules, join_planner=self.config["join_planner"])
+                    engine = InferenceEngine(query_store, self.rules, join_planner=self.config["join_planner"])
                     inferred = engine.infer(self._limits())
-                    direct = self.store.query(subject=data["subject"], predicate=data["predicate"], object=data["object"])
+                    direct = query_store.query(subject=data["subject"], predicate=data["predicate"], object=data["object"])
                     if controller.proven and direct:
                         solutions = [self._derived_solution(direct[0].key, engine, inferred, fact_id=direct[0].fact_id)]
                     elif controller.proven:
@@ -731,12 +750,15 @@ class StudioState:
                 "cache_hit": False,
                 "cache_lookup_ns": time.perf_counter_ns() - cache_lookup_start,
             }
+            if context_filter:
+                response_payload["context_filter"] = context_filter
+                response_payload["context_fact_count"] = query_store.stats()["facts"]
             self.query_cache.put(cache_key, _canonical(response_payload))
             self.queries_executed += 1
             self.last_query_latency_ms = (time.perf_counter_ns() - start) / 1_000_000
             self.strategy_samples.setdefault(actual_strategy, []).append(self.last_query_latency_ms)
             self.strategy_samples[actual_strategy] = self.strategy_samples[actual_strategy][-512:]
-            self.record_activity("query", strategy=actual_strategy, proven=proven)
+            self.record_activity("query", strategy=actual_strategy, proven=proven, contextual=bool(context_filter))
             self.sample_metrics()
             return response_payload
 
@@ -769,11 +791,17 @@ class StudioState:
     def explain(self, payload: Any) -> dict[str, Any]:
         data = payload.model_dump() if hasattr(payload, "model_dump") else dict(payload)
         with self._lock:
-            engine = InferenceEngine(self.store, self.rules, join_planner=self.config["join_planner"])
+            context_filter = dict(normalize_context(data.get("context_filter")))
+            query_store = self.store.contextual_view(context_filter)
+            engine = InferenceEngine(query_store, self.rules, join_planner=self.config["join_planner"])
             inferred = engine.infer(self._limits())
             key = (data["subject"], data["predicate"], data["object"])
             nodes = engine.explain_all(inferred, key)
-            return {"key": list(key), "proofs": [_proof_dict(proof) for node in nodes for proof in [branch.proof for branch in node.proofs]], "explanation": [_explanation_dict(node) for node in nodes], "complete": inferred.complete, "stop_reason": inferred.stop_reason}
+            response = {"key": list(key), "proofs": [_proof_dict(proof) for node in nodes for proof in [branch.proof for branch in node.proofs]], "explanation": [_explanation_dict(node) for node in nodes], "complete": inferred.complete, "stop_reason": inferred.stop_reason}
+            if context_filter:
+                response["context_filter"] = context_filter
+                response["context_fact_count"] = query_store.stats()["facts"]
+            return response
 
     def memory_stats(self) -> dict[str, Any]:
         with self._lock:
