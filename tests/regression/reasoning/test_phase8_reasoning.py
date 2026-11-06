@@ -49,6 +49,35 @@ class Phase8ReasoningTests(unittest.TestCase):
         self.assertNotIn(target.key, {fact.key for fact in tracker.active})
         self.assertEqual(second_removal.conclusions_invalidated, 1)
 
+    def test_evidence_retraction_preserves_then_invalidates_dependent_conclusion(self):
+        store = KnowledgeStore()
+        store.add_entity("a")
+        store.add_entity("b")
+        reasoner = KnowledgeReasoner(
+            store,
+            [Rule("copy-edge", (Pattern("?x", "edge", "?y"),), Pattern("?x", "reachable", "?y"))],
+        )
+        fact, _ = reasoner.add_fact("a", "edge", "b", provenance=Provenance("source-1"))
+        reasoner.add_fact("a", "edge", "b", provenance=Provenance("source-2"))
+        reasoner.recompute()
+        self.assertEqual([item.key for item in reasoner.conclusions()], [("a", "reachable", "b")])
+
+        original = store.get_fact(fact.fact_id)
+        partial = reasoner.remove_evidence(fact.fact_id, original.evidence_records[0].evidence_id)
+        self.assertIsNotNone(partial.removal.fact_after)
+        self.assertEqual(len(partial.removal.fact_after.evidence_records), 1)
+        self.assertIsNone(partial.invalidation)
+        self.assertTrue(partial.inference_complete)
+        self.assertEqual([item.key for item in reasoner.conclusions()], [("a", "reachable", "b")])
+
+        remaining = partial.removal.fact_after.evidence_records[0]
+        final = reasoner.remove_evidence(fact.fact_id, remaining.evidence_id)
+        self.assertIsNone(final.removal.fact_after)
+        self.assertIsNotNone(final.invalidation)
+        self.assertFalse(final.inference_complete)
+        self.assertEqual(reasoner.conclusions(), ())
+        self.assertEqual(reasoner.recompute().result.conclusions, ())
+
     def test_open_query_enumerates_bindings_and_derivation_explanations(self):
         store = KnowledgeStore()
         for entity in ("a", "b", "c", "d"):

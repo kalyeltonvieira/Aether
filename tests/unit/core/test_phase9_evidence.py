@@ -51,6 +51,33 @@ class MultipleFactEvidenceTests(unittest.TestCase):
         self.assertTrue(assessment.evidence_sufficient)
         self.assertEqual(assessment.explicit_fact_ids, (fact.fact_id,))
 
+    def test_removing_evidence_preserves_fact_until_its_last_support_is_withdrawn(self):
+        first, _ = self.store.add_fact(
+            "alice", "name", "Alice", provenance=Provenance("directory")
+        )
+        second, inserted = self.store.add_fact(
+            "alice", "name", "Alice", provenance=Provenance("archive")
+        )
+        self.assertFalse(inserted)
+        self.assertEqual(first.fact_id, second.fact_id)
+        first_id, second_id = [item.evidence_id for item in second.evidence_records]
+        structural_version = self.store.structural_version
+
+        partial = self.store.remove_evidence(first.fact_id, first_id)
+        self.assertEqual(partial.evidence.evidence_id, first_id)
+        self.assertEqual(partial.fact_after.fact_id, first.fact_id)
+        self.assertEqual([item.evidence_id for item in partial.fact_after.evidence_records], [second_id])
+        self.assertEqual(self.store.structural_version, structural_version)
+        latest = self.store.history_stats()["retained_changes"] - 1
+        self.assertEqual(self.store.history_changes(offset=latest, limit=1)[0].operation, "fact_evidence_removed")
+
+        final = self.store.remove_evidence(first.fact_id, second_id)
+        self.assertIsNone(final.fact_after)
+        self.assertEqual(self.store.query(subject="alice", predicate="name"), ())
+        self.assertEqual(self.store.structural_version, structural_version + 1)
+        with self.assertRaises(KeyError):
+            self.store.remove_evidence(first.fact_id, second_id)
+
     def test_conflicting_fact_properties_are_not_silently_discarded(self):
         self.store.add_fact("alice", "name", "Alice", properties={"language": "en"})
         with self.assertRaises(ValueError):

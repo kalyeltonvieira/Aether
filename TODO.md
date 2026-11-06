@@ -6,13 +6,13 @@ Este roadmap substitui a organização antiga em etapas A–E. Os checklists aba
 O Studio está integrado em `main` no commit `0fd08c016e36779d61f0a140b0b8ca517e9c298d`; CI desse SHA passou 13/13 jobs ([run 42117194839](https://github.com/kalyeltonvieira/Aether/actions/runs/42117194839)). A branch `fix/stage1-reliability` corrige os três achados: sessão Preview limitada ao `exp` do JWT, stores de domínio efetivamente efêmeros no modo sem persistência e reserva de OAuth state antes de I/O. A validação local passou e a CI remota passou 13/13 jobs ([run 42125306398](https://github.com/kalyeltonvieira/Aether/actions/runs/42125306398)); falta revisão/merge, portanto a etapa segue aberta.
 
 ## [~] Etapa 2 — núcleo cognitivo (parcial)
-Primeira fatia local em `feat/contextual-evidence-v1`: rótulos por evidência, filtro pré-inferência em todas as estratégias, contexto preservado no Proof Explorer e leitura de snapshots v1. Validação completa local aprovada: unittest 207/6 skips, pytest 208/21 skips por falta de toolchain Rust, frontend typecheck e 19 testes Vitest, build e wheel. CI/review/merge dessa branch ainda pendentes. Não confundir com memória episódica ou contextual inferida: aprendizagem de estruturas, revisão de conhecimento, resolução explícita de conflitos, raciocínio multi-etapas contextual e sinalização explícita de informação insuficiente seguem pendentes. Contrato: [CONTEXTUAL_EVIDENCE.md](docs/architecture/CONTEXTUAL_EVIDENCE.md).
+`feat/contextual-evidence-v1` introduziu contexto por evidência. A branch local ainda não enviada `feat/evidence-review-v1` acrescenta retirada individual de evidência, invalidação de provas/conclusões dependentes e ledger persistente de decisões humanas; as revisões ficam obsoletas monotonicamente quando suas evidências mudam. Validação local: unittest 218/6 skips e pytest 213/21 skips devido à ausência do toolchain Rust; CI da branch nova pendente. API/Studio ainda não expõe essas operações. Aprendizado de estruturas, revisão automática, raciocínio contextual multi-etapas e detecção automática de insuficiência seguem pendentes. Contratos: [CONTEXTUAL_EVIDENCE.md](docs/architecture/CONTEXTUAL_EVIDENCE.md) e [EVIDENCE_REVIEW.md](docs/architecture/EVIDENCE_REVIEW.md).
 
 ## [~] Etapa 3 — autonomia e eficiência medida
 Há benchmarks delimitados. O controller adaptativo perdeu para estratégia fixa em 9/10 famílias e não foi promovido; energia não foi medida.
 
-## [ ] Etapa 4 — integrações (não implementada)
-Integrações LLM, linguagem natural, documentos, multimodalidade, ferramentas e agentes. LLM não é fonte de verdade; evidências e estado canônico permanecem no sistema.
+## [—] Etapa 4 — integrações (fora do escopo ativo)
+AETHER permanece um núcleo simbólico/relacional independente. Não há integração LLM, NLP ou agentes no escopo atual. Conectores determinísticos de fontes/ferramentas só devem ser planejados diante de um caso de uso concreto e com proveniência verificável.
 
 ## Snapshot histórico de fases anteriores
 Cada item mantém os critérios do brief original junto do resultado correspondente. Status não presume testes em sistemas que não foram executados.

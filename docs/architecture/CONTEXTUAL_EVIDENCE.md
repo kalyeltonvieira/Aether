@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Este incremento adiciona rótulos contextuais a cada registro de evidência de um fato e permite selecionar evidências antes da inferência. É uma primeira fatia de recuperação contextual — **não** implementa ainda memória episódica, aprendizagem de estruturas, revisão de crenças, resolução de conflitos ou contexto inferido automaticamente.
+Este incremento adiciona rótulos contextuais a cada registro de evidência de um fato e permite selecionar evidências antes da inferência. É uma primeira fatia de recuperação contextual — **não** implementa ainda memória episódica, aprendizagem de estruturas ou contexto inferido automaticamente. Retração seletiva de evidências e ledger de revisão de conflitos estão descritos em [EVIDENCE_REVIEW.md](EVIDENCE_REVIEW.md).
 
 O contexto é um mapa de até 32 pares `string → string`; cada chave tem até 64 caracteres e cada valor até 256. Chaves e valores devem ser não vazios. A comparação é exata. Exemplos de rótulos são `domain`, `period`, `project` e `source_scope`; esses nomes não têm semântica embutida no core.
 
@@ -47,7 +47,7 @@ Fatos legados e evidências sem rótulos não são elegíveis para um filtro con
 
 ## Persistência e compatibilidade
 
-O formato de snapshot passa a schema v2 e grava o mapa em cada evidência, inclusive em snapshots de histórico. O loader ainda aceita schema v1; todas as evidências antigas são carregadas com contexto vazio. A assinatura/checksum e as verificações estruturais continuam aplicadas. Novos snapshots são sempre escritos em v2.
+O formato de snapshot passou a schema v2 para armazenar contextos por evidência; o ledger de resolução começou em v3 e sua invalidação monotônica evolui o formato atual para schema v4. O loader aceita schema v1 (contexto vazio), v2 (contexto preservado, ledger vazio), v3 (ledger mantido como histórico inválido) e v4. A assinatura/checksum e as verificações estruturais continuam aplicadas. Novos snapshots são sempre escritos em v4.
 
 ## Limites importantes
 
@@ -55,7 +55,7 @@ O formato de snapshot passa a schema v2 e grava o mapa em cada evidência, inclu
 - Um filtro sem resultados significa que não há evidência elegível naquele recorte; não refuta a relação fora dele.
 - O contexto **não é autorização nem isolamento de segurança**. As rotas continuam dependendo de sessão, papel e CSRF; não use o campo para proteger dados de tenants.
 - Regras não geram nem propagam automaticamente contextos para fatos derivados. Elas apenas raciocinam sobre o conjunto pré-selecionado.
-- O filtro é uma correspondência simples de pares exatos; não há hierarquia, janela temporal, pontuação de relevância, fallback semântico, detector de evidência conflitante ou seleção probabilística.
+- O filtro é uma correspondência simples de pares exatos; não há hierarquia, janela temporal, pontuação de relevância, fallback semântico ou seleção probabilística. Conflitos só são detectados se o chamador declarar uma regra de incompatibilidade; não há detector semântico automático.
 - A visão contextual é materializada por consulta após um cache miss; medição e otimização desse custo pertencem à Etapa 3.
 
 A especificação geral da API está em [API.md](API.md); o roadmap de implementação está em [plan.md](../../plan.md).

@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from aether.core.knowledge.store import KnowledgeStore, Provenance
+from aether.reasoning.consistency import ConsistencyValidator, IncompatibilityRule, KnowledgeStatus
 
 
 class KnowledgeStorePersistenceTests(unittest.TestCase):
@@ -122,6 +123,7 @@ class KnowledgeStorePersistenceTests(unittest.TestCase):
             store.save(path)
             envelope = json.loads(path.read_text(encoding="utf-8"))
             envelope["payload"]["schema_version"] = 1
+            envelope["payload"]["state"].pop("conflict_resolutions", None)
 
             def remove_v2_evidence_context(value):
                 if isinstance(value, dict):
@@ -143,6 +145,67 @@ class KnowledgeStorePersistenceTests(unittest.TestCase):
 
             restored = KnowledgeStore.load(path)
         self.assertEqual(restored.query(subject="alice", predicate="name")[0].evidence_records[0].context_map, {})
+
+    def test_v2_snapshot_loads_with_context_and_empty_conflict_ledger(self):
+        store = KnowledgeStore()
+        store.add_entity("alice")
+        store.add_fact(
+            "alice", "name", "Alice", provenance=Provenance("legacy-v2"),
+            context={"domain": "people"},
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "knowledge.json"
+            store.save(path)
+            envelope = json.loads(path.read_text(encoding="utf-8"))
+            envelope["payload"]["schema_version"] = 2
+            envelope["payload"]["state"].pop("conflict_resolutions", None)
+            canonical = json.dumps(
+                envelope["payload"], sort_keys=True, separators=(",", ":"),
+                ensure_ascii=False, allow_nan=False,
+            ).encode("utf-8")
+            envelope["sha256"] = hashlib.sha256(canonical).hexdigest()
+            path.write_text(json.dumps(envelope), encoding="utf-8")
+            restored = KnowledgeStore.load(path)
+
+        self.assertEqual(
+            restored.query(subject="alice", predicate="name")[0].evidence_records[0].context_map,
+            {"domain": "people"},
+        )
+        self.assertEqual(restored.conflict_resolutions, ())
+
+    def test_v3_resolution_is_preserved_as_stale_on_schema_v4_load(self):
+        store = KnowledgeStore()
+        store.add_entity("alice")
+        alive, _ = store.add_fact("alice", "alive", True, provenance=Provenance("source-a"))
+        dead, _ = store.add_fact("alice", "dead", True, provenance=Provenance("source-b"))
+        rule = IncompatibilityRule("alive", "dead", ((True, True),))
+        validator = ConsistencyValidator(store)
+        validator.record_resolution(
+            (alive.fact_id, dead.fact_id), (alive.fact_id,),
+            reason="reviewed", resolved_by="reviewer",
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "knowledge.json"
+            store.save(path)
+            envelope = json.loads(path.read_text(encoding="utf-8"))
+            envelope["payload"]["schema_version"] = 3
+            for item in envelope["payload"]["state"]["conflict_resolutions"]:
+                item.pop("invalidated_at_ns")
+            canonical = json.dumps(
+                envelope["payload"], sort_keys=True, separators=(",", ":"),
+                ensure_ascii=False, allow_nan=False,
+            ).encode("utf-8")
+            envelope["sha256"] = hashlib.sha256(canonical).hexdigest()
+            path.write_text(json.dumps(envelope), encoding="utf-8")
+            restored = KnowledgeStore.load(path)
+
+        migrated = restored.conflict_resolutions[0]
+        self.assertEqual(migrated.invalidated_at_ns, migrated.recorded_at_ns)
+        assessment = ConsistencyValidator(restored).assess(
+            ("alice", "alive", True), incompatibilities=(rule,)
+        )
+        self.assertEqual(assessment.status, KnowledgeStatus.CONTRADICTED)
+        self.assertIsNone(assessment.resolution)
 
 
 if __name__ == "__main__":

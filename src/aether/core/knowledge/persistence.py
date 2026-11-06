@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from aether.core.knowledge.store import (
+    ConflictResolution,
     Entity,
     Fact,
     FactEvidence,
@@ -24,7 +25,7 @@ from aether.core.knowledge.store import (
 
 
 _FORMAT = "aether.knowledge-store"
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 4
 _PROVENANCE_FIELDS = (
     "source",
     "evidence",
@@ -268,6 +269,50 @@ def _decode_change(value: Any, *, schema_version: int = _SCHEMA_VERSION) -> Know
     )
 
 
+def _encode_conflict_resolution(value: ConflictResolution) -> dict:
+    return {
+        "fact_ids": list(value.fact_ids),
+        "selected_fact_ids": list(value.selected_fact_ids),
+        "reason": value.reason,
+        "resolved_by": value.resolved_by,
+        "evidence_fingerprint": value.evidence_fingerprint,
+        "recorded_at_ns": value.recorded_at_ns,
+        "invalidated_at_ns": value.invalidated_at_ns,
+    }
+
+
+def _decode_conflict_resolution(value: Any, *, schema_version: int) -> ConflictResolution:
+    fields = {
+        "fact_ids", "selected_fact_ids", "reason", "resolved_by",
+        "evidence_fingerprint", "recorded_at_ns",
+    }
+    if schema_version >= 4:
+        fields.add("invalidated_at_ns")
+    if not isinstance(value, dict) or set(value) != fields:
+        raise ValueError("invalid conflict resolution in knowledge snapshot")
+    if not isinstance(value["fact_ids"], list) or not isinstance(value["selected_fact_ids"], list):
+        raise ValueError("conflict resolution fact IDs must be lists")
+    try:
+        return ConflictResolution(
+            tuple(value["fact_ids"]),
+            tuple(value["selected_fact_ids"]),
+            value["reason"],
+            value["resolved_by"],
+            value["evidence_fingerprint"],
+            _positive_int(value["recorded_at_ns"], "resolution recorded_at_ns"),
+            (
+                _positive_int(value["invalidated_at_ns"], "resolution invalidated_at_ns")
+                if schema_version >= 4 and value["invalidated_at_ns"] is not None
+                else (
+                    _positive_int(value["recorded_at_ns"], "resolution recorded_at_ns")
+                    if schema_version < 4 else None
+                )
+            ),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid conflict resolution in knowledge snapshot") from exc
+
+
 def _canonical_json(value: Any) -> bytes:
     return json.dumps(
         value,
@@ -292,6 +337,9 @@ def _payload_for(store: KnowledgeStore) -> dict:
         ],
         "facts": [_encode_fact(fact) for fact in sorted(store.query(), key=lambda item: item.fact_id)],
         "history": [_encode_change(change) for change in store._history],
+        "conflict_resolutions": [
+            _encode_conflict_resolution(item) for item in store.conflict_resolutions
+        ],
     }
     return {"format": _FORMAT, "schema_version": _SCHEMA_VERSION, "state": state}
 
@@ -353,13 +401,15 @@ def load_store(path: str | os.PathLike) -> KnowledgeStore:
     if not isinstance(payload, dict) or payload.get("format") != _FORMAT:
         raise ValueError("unknown knowledge snapshot format")
     schema_version = payload.get("schema_version")
-    if type(schema_version) is not int or schema_version not in {1, _SCHEMA_VERSION}:
+    if type(schema_version) is not int or schema_version not in {1, 2, 3, _SCHEMA_VERSION}:
         raise ValueError(f"unsupported knowledge snapshot schema: {schema_version!r}")
     state = payload.get("state")
     required = {
         "version", "structural_version", "next_fact_id", "history_limit",
         "history_sequence", "history_truncated_through", "entities", "facts", "history",
     }
+    if schema_version >= 3:
+        required.add("conflict_resolutions")
     if not isinstance(state, dict) or set(state) != required:
         raise ValueError("invalid knowledge snapshot state")
 
@@ -411,4 +461,11 @@ def load_store(path: str | os.PathLike) -> KnowledgeStore:
         raise ValueError("history sequence exceeds the stored sequence watermark")
     if store._history_truncated_through > store._history_sequence:
         raise ValueError("history truncation watermark exceeds the stored sequence")
+    raw_resolutions = state.get("conflict_resolutions", [])
+    if not isinstance(raw_resolutions, list):
+        raise ValueError("conflict_resolutions must be a list")
+    store._conflict_resolutions = [
+        _decode_conflict_resolution(item, schema_version=schema_version)
+        for item in raw_resolutions
+    ]
     return store

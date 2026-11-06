@@ -6,6 +6,8 @@ provenance, type-aware scalar identity and query indexes; it does not infer.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import hashlib
+import json
 import os
 import struct
 import time
@@ -160,6 +162,23 @@ class FactEvidence:
     def context_map(self) -> dict[str, str]:
         return dict(self.context)
 
+    @property
+    def evidence_id(self) -> str:
+        provenance = None if self.provenance is None else {
+            name: getattr(self.provenance, name)
+            for name in (
+                "source", "evidence", "observed_at", "source_url", "source_line",
+                "record_id", "evidence_type", "transformation", "observed_at_iso",
+            )
+        }
+        payload = {
+            "provenance": provenance,
+            "confidence": None if self.confidence is None else float(self.confidence).hex(),
+            "context": self.context_map,
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return "ev_" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
 
 @dataclass(frozen=True, eq=False)
 class Entity:
@@ -254,6 +273,55 @@ class KnowledgeChange:
     after: Entity | Fact | None = None
 
 
+@dataclass(frozen=True)
+class EvidenceRemoval:
+    fact_before: Fact
+    evidence: FactEvidence
+    fact_after: Fact | None
+
+
+@dataclass(frozen=True)
+class ConflictResolution:
+    """Audited human resolution tied to an exact evidence-set fingerprint."""
+
+    fact_ids: tuple[int, ...]
+    selected_fact_ids: tuple[int, ...]
+    reason: str
+    resolved_by: str
+    evidence_fingerprint: str
+    recorded_at_ns: int
+    invalidated_at_ns: int | None = None
+
+    def __post_init__(self) -> None:
+        for values, label in (
+            (self.fact_ids, "fact_ids"),
+            (self.selected_fact_ids, "selected_fact_ids"),
+        ):
+            if any(isinstance(value, bool) or not isinstance(value, int) or value < 1 for value in values):
+                raise ValueError(f"{label} must contain positive integers")
+            if not values or tuple(sorted(set(values))) != values:
+                raise ValueError(f"{label} must be sorted, unique, and non-empty")
+        if not set(self.selected_fact_ids) <= set(self.fact_ids):
+            raise ValueError("selected_fact_ids must be a subset of fact_ids")
+        for text, label in ((self.reason, "reason"), (self.resolved_by, "resolved_by")):
+            if not isinstance(text, str) or not text.strip():
+                raise ValueError(f"{label} must be a non-empty string")
+        if (
+            not isinstance(self.evidence_fingerprint, str)
+            or len(self.evidence_fingerprint) != 64
+            or any(char not in "0123456789abcdef" for char in self.evidence_fingerprint)
+        ):
+            raise ValueError("evidence_fingerprint must be a lowercase SHA-256 hex digest")
+        if isinstance(self.recorded_at_ns, bool) or not isinstance(self.recorded_at_ns, int) or self.recorded_at_ns < 1:
+            raise ValueError("recorded_at_ns must be a positive integer")
+        if self.invalidated_at_ns is not None and (
+            isinstance(self.invalidated_at_ns, bool)
+            or not isinstance(self.invalidated_at_ns, int)
+            or self.invalidated_at_ns < self.recorded_at_ns
+        ):
+            raise ValueError("invalidated_at_ns must be None or not precede recorded_at_ns")
+
+
 class KnowledgeStore:
     """Versioned entity/fact store with indexes for the three fact positions."""
 
@@ -273,6 +341,7 @@ class KnowledgeStore:
         self._history: list[KnowledgeChange] = []
         self._history_sequence = 0
         self._history_truncated_through = 0
+        self._conflict_resolutions: list[ConflictResolution] = []
 
     def _record_change(
         self,
@@ -298,6 +367,14 @@ class KnowledgeStore:
         if len(self._history) > self.history_limit:
             removed = self._history.pop(0)
             self._history_truncated_through = removed.sequence
+
+    def _invalidate_conflict_resolutions_for_fact(self, fact_id: int) -> None:
+        self._conflict_resolutions = [
+            replace(item, invalidated_at_ns=max(time.time_ns(), item.recorded_at_ns))
+            if fact_id in item.fact_ids and item.invalidated_at_ns is None
+            else item
+            for item in self._conflict_resolutions
+        ]
 
     @staticmethod
     def _entity_id(value: str) -> str:
@@ -414,9 +491,11 @@ class KnowledgeStore:
                     changed = True
             evidence = FactEvidence(provenance, confidence, normalized_context)
             evidence_records = existing.evidence_records
+            evidence_changed = False
             if evidence not in evidence_records:
                 evidence_records = evidence_records + (evidence,)
                 changed = True
+                evidence_changed = True
             if changed:
                 existing = replace(
                     existing,
@@ -428,6 +507,8 @@ class KnowledgeStore:
                 self._record_change(
                     "fact_metadata_updated", fact_id=existing_id, before=before, after=existing
                 )
+                if evidence_changed:
+                    self._invalidate_conflict_resolutions_for_fact(existing_id)
             return existing, False
         fact = Fact(
             self._next_fact_id,
@@ -460,6 +541,7 @@ class KnowledgeStore:
 
     def remove_fact(self, fact_id: int) -> Fact:
         fact = self.get_fact(fact_id)
+        self._invalidate_conflict_resolutions_for_fact(fact_id)
         del self._facts[fact.fact_id]
         del self._fact_keys[(fact.subject, fact.predicate, scalar_identity(fact.object))]
         self._by_subject[fact.subject].remove(fact.fact_id)
@@ -469,6 +551,93 @@ class KnowledgeStore:
         self.structural_version += 1
         self._record_change("fact_removed", fact_id=fact.fact_id, before=fact)
         return fact
+
+    def remove_evidence(self, fact_id: int, evidence_id: str) -> EvidenceRemoval:
+        """Withdraw one evidence record; remove the logical fact only when unsupported."""
+        fact = self.get_fact(fact_id)
+        if (
+            not isinstance(evidence_id, str)
+            or len(evidence_id) != 67
+            or not evidence_id.startswith("ev_")
+            or any(char not in "0123456789abcdef" for char in evidence_id[3:])
+        ):
+            raise ValueError("evidence_id must be a valid stable evidence identifier")
+        removed = next((item for item in fact.evidence_records if item.evidence_id == evidence_id), None)
+        if removed is None:
+            raise KeyError(evidence_id)
+        remaining = tuple(item for item in fact.evidence_records if item != removed)
+        if not remaining:
+            self.remove_fact(fact_id)
+            return EvidenceRemoval(fact, removed, None)
+
+        primary = remaining[0]
+        updated = replace(
+            fact,
+            provenance=primary.provenance,
+            confidence=primary.confidence,
+            evidence_records=remaining,
+        )
+        self._facts[fact_id] = updated
+        self._invalidate_conflict_resolutions_for_fact(fact_id)
+        self.version += 1
+        self._record_change(
+            "fact_evidence_removed", fact_id=fact_id, before=fact, after=updated
+        )
+        return EvidenceRemoval(fact, removed, updated)
+
+    def evidence_fingerprint(self, fact_ids: tuple[int, ...] | list[int]) -> str:
+        raw_ids = tuple(fact_ids)
+        for fact_id in raw_ids:
+            if isinstance(fact_id, bool) or not isinstance(fact_id, int) or fact_id < 1:
+                raise ValueError("fact_ids must contain positive integers")
+        ids = tuple(sorted(set(raw_ids)))
+        if not ids:
+            raise ValueError("fact_ids must be non-empty")
+        payload = [
+            [fact_id, sorted(item.evidence_id for item in self.get_fact(fact_id).evidence_records)]
+            for fact_id in ids
+        ]
+        encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+        return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+    @property
+    def conflict_resolutions(self) -> tuple[ConflictResolution, ...]:
+        return tuple(self._conflict_resolutions)
+
+    def record_conflict_resolution(
+        self,
+        fact_ids: tuple[int, ...] | list[int],
+        selected_fact_ids: tuple[int, ...] | list[int],
+        *,
+        reason: str,
+        resolved_by: str,
+    ) -> ConflictResolution:
+        raw_ids = tuple(fact_ids)
+        raw_selected = tuple(selected_fact_ids)
+        if any(isinstance(value, bool) or not isinstance(value, int) or value < 1 for value in raw_ids):
+            raise ValueError("fact_ids must contain positive integers")
+        if any(isinstance(value, bool) or not isinstance(value, int) or value < 1 for value in raw_selected):
+            raise ValueError("selected_fact_ids must contain positive integers")
+        ids = tuple(sorted(set(raw_ids)))
+        selected = tuple(sorted(set(raw_selected)))
+        if not ids or not selected or not set(selected) <= set(ids):
+            raise ValueError("selected_fact_ids must be a non-empty subset of fact_ids")
+        for fact_id in ids:
+            self.get_fact(fact_id)
+        if not isinstance(reason, str) or not reason.strip():
+            raise ValueError("reason must be a non-empty string")
+        if not isinstance(resolved_by, str) or not resolved_by.strip():
+            raise ValueError("resolved_by must be a non-empty string")
+        resolution = ConflictResolution(
+            ids,
+            selected,
+            reason,
+            resolved_by,
+            self.evidence_fingerprint(ids),
+            time.time_ns(),
+        )
+        self._conflict_resolutions.append(resolution)
+        return resolution
 
     def query(
         self,

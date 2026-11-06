@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+from pathlib import Path
 
 from aether_consistency import (
     ConsistencyValidator,
@@ -74,6 +76,54 @@ class Phase8ConsistencyTests(unittest.TestCase):
         report = self.validator.validate(incompatibilities=(rule,))
         self.assertIn(resolution, report.resolutions)
         self.assertIn("incompatible_facts", {issue.code for issue in report.issues})
+
+    def test_conflict_resolution_round_trips_and_becomes_stale_after_new_evidence(self):
+        alive, _ = self.store.add_fact("a", "alive", True, provenance=Provenance("source-a"))
+        dead, _ = self.store.add_fact("a", "dead", True, provenance=Provenance("source-b"))
+        rule = IncompatibilityRule("alive", "dead", ((True, True),))
+        resolution = self.validator.record_resolution(
+            (alive.fact_id, dead.fact_id), (alive.fact_id,),
+            reason="reviewed primary evidence", resolved_by="reviewer-2",
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "knowledge.json"
+            self.store.save(path)
+            restored = KnowledgeStore.load(path)
+
+        validator = ConsistencyValidator(restored)
+        assessment = validator.assess(("a", "alive", True), incompatibilities=(rule,))
+        self.assertEqual(assessment.status, KnowledgeStatus.CONTRADICTED)
+        self.assertEqual(assessment.resolution, resolution)
+        self.assertEqual(validator.resolutions, (resolution,))
+
+        revised_fact, _ = restored.add_fact(
+            "a", "alive", True, provenance=Provenance("new-audit")
+        )
+        revised = validator.assess(("a", "alive", True), incompatibilities=(rule,))
+        self.assertEqual(revised.status, KnowledgeStatus.CONTRADICTED)
+        self.assertIsNone(revised.resolution)
+        self.assertEqual(len(validator.resolutions), 1)
+
+        refreshed = validator.record_resolution(
+            (alive.fact_id, dead.fact_id), (alive.fact_id,),
+            reason="reviewed revised evidence", resolved_by="reviewer-3",
+        )
+        new_evidence = next(
+            item for item in revised_fact.evidence_records
+            if item.provenance is not None and item.provenance.source == "new-audit"
+        )
+        restored.remove_evidence(revised_fact.fact_id, new_evidence.evidence_id)
+        after_withdrawal = validator.assess(("a", "alive", True), incompatibilities=(rule,))
+        self.assertIsNone(after_withdrawal.resolution)
+        refreshed_history = next(
+            item for item in validator.resolutions if item.reason == refreshed.reason
+        )
+        self.assertIsNotNone(refreshed_history.invalidated_at_ns)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "revised.json"
+            restored.save(path)
+            reloaded = KnowledgeStore.load(path)
+        self.assertIsNotNone(reloaded.conflict_resolutions[-1].invalidated_at_ns)
 
     def test_rule_consequents_are_not_contradictory_without_declared_incompatibility(self):
         first = Rule("r1", (Pattern("?x", "p", "?y"),), Pattern("?x", "q", "?y"))
